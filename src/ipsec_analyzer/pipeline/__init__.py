@@ -1,6 +1,5 @@
-"""Analysis pipeline boundary.
+"""Analysis pipeline: deterministic parsing -> evidence -> (later) rules/ML.
 
-Not implemented at the scaffold stage: no packet processing and no findings
-are produced here. Future stages must return explicit unknown/unavailable
-statuses rather than fabricated results.
+No stage here fabricates results: anything not supported by the evidence is
+represented as unknown/insufficient evidence.
 """

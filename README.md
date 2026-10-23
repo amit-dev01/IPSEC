@@ -58,6 +58,61 @@ location /api/v1/captures {
 }
 ```
 
+## Worker parsing, evidence, manifests, and ML baseline
+
+The Celery worker (the only image containing TShark — see `Dockerfile.worker`;
+**the API never imports or runs TShark**, verified by an import-graph check)
+downloads the capture to a private temp directory, verifies the downloaded
+object's SHA-256 against the database record **before** parsing, then runs
+TShark with a fixed executable and fixed arguments (`-n`, EK JSON lines, no
+shell, no user-supplied options/filters/paths/environment), under configurable
+time/packet-count/output-size/temp limits. Required TShark fields are
+validated against the installed version (`tshark -G fields`); unsupported
+fields fail explicitly (`parser_unsupported_field`), never silently zeroed.
+Temp directories are removed on success and failure; only packet summaries
+and aggregates are produced — payloads are never persisted or logged. Runs
+record TShark version, parser version, truncation warnings, and limitations.
+
+**Evidence** (`GET /api/v1/analyses/{id}/evidence`) gives every fact a name,
+value, source (`packet_observed`/`lab_manifest`/`analyst_supplied`/
+`model_inferred`/`unknown`), visibility (`visible`/`encrypted_or_unavailable`/
+`derived`), confidence/quality, frame references, and limitations. Offered IKE
+transforms are kept distinct from the responder-selected ones, IKE-SA
+transforms distinct from Child-SA/ESP transforms, and the ESP cipher, PFS,
+replay-window configuration, configured lifetimes, and tunnel/transport mode
+are reported `unknown` unless genuinely observed or supplied — an observed
+rekey interval is labelled derived and is *not* the configured lifetime. Outer
+addresses in evidence are hashed unless `IPSEC_EVIDENCE_ALLOW_PLAIN_ADDRESSES`
+is explicitly enabled.
+
+**Lab manifests** (`POST/GET /api/v1/captures/{id}/manifest`, schema `1.0`) let
+the authorized testbed declare ground truth (selected IKE config, mode,
+IPv4/6, ESP/DH/PFS, lifetimes, replay, traffic category, lab-only application
+label, testbed/run/capture IDs). The strict Pydantic schema structurally
+rejects PSKs/private/session keys and any secret-named field. Manifests never
+overwrite packet-observed facts; conflicts on the next run produce discrepancy
+evidence plus a `MANIFEST_PACKET_DISCREPANCY` finding. Admins can export a
+de-identified flow-feature dataset (`GET /api/v1/admin/exports/flow-dataset`).
+
+**ML baseline** (local scikit-learn, no LLM, no external lookups): features are
+flow metadata only (counts, length/IAT statistics, direction, bursts,
+duration, byte rate, ESP/NAT-T ratios) — never payloads, raw IPs, domains, or
+usernames. Train offline from the admin export with group-by-capture/run
+splitting (no packet-level leakage):
+
+```bash
+uv run ipsec-ml train --dataset export.json --out model.joblib \
+  --model-card model_card.json --model-version baseline-1.0
+```
+
+Point `IPSEC_ML_MODEL_PATH` at the administrator-built artifact; inference
+returns `{status, predicted_category, calibrated confidence, model_version,
+features_used, limitations}`, abstains to `unknown` below
+`IPSEC_ML_ABSTAIN_THRESHOLD`, and returns `unavailable` when no valid model is
+installed. Categories are broad (web/email/voice/video/messaging/ICMP/other);
+**exact app/vendor predictions (e.g. "this is WhatsApp") are not supported by
+default** — such labels exist only as lab ground truth for evaluation.
+
 ## Analysis jobs (Celery + Redis)
 
 `POST /api/v1/captures/{id}/analyses` (`analyses:write`) stores an `AnalysisRun`

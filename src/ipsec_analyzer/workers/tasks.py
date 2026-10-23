@@ -13,10 +13,11 @@ from celery.exceptions import MaxRetriesExceededError
 
 from ipsec_analyzer.core.config import get_settings
 from ipsec_analyzer.db.session import SessionLocal
-from ipsec_analyzer.services.analyses import process_analysis, reconcile_stale
+from ipsec_analyzer.services.analyses import reconcile_stale
 from ipsec_analyzer.services.dispatch import CeleryDispatcher
 from ipsec_analyzer.storage.s3 import S3Storage
 from ipsec_analyzer.workers.celery_app import celery_app
+from ipsec_analyzer.workers.processing import process_analysis
 
 logger = logging.getLogger(__name__)
 

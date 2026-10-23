@@ -13,19 +13,16 @@ State machine (enforced by `transition`):
 `succeeded`/`cancelled` are terminal. Anything else raises InvalidTransition.
 PostgreSQL is the authoritative status store; Celery is transport only.
 
-The current pipeline stage ("verification-0.1") does bounded, honest work:
-stream the stored object, verify size + SHA-256 + magic bytes, and record that
-as evidence. It produces no findings and no scores — packet parsing arrives in
-a later stage and must replace/extend this stage, not fabricate results.
+Worker-side processing lives in `workers/processing.py` (the only place the
+TShark adapter is imported); this module owns the lifecycle used by the API.
 """
 
-import hashlib
 import logging
 import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ipsec_analyzer.core.config import Settings
@@ -33,16 +30,10 @@ from ipsec_analyzer.models import (
     AnalysisRun,
     AnalysisStatus,
     Capture,
-    CaptureState,
-    EvidenceRecord,
-    EvidenceSource,
-    EvidenceVisibility,
     User,
 )
-from ipsec_analyzer.parsing.magic import detect_format
 from ipsec_analyzer.services.audit import record_event
 from ipsec_analyzer.services.dispatch import DispatchError
-from ipsec_analyzer.storage.base import ObjectStorage, StorageError, StorageNotFound
 
 logger = logging.getLogger(__name__)
 
@@ -169,126 +160,3 @@ def reconcile_stale(db: Session, dispatcher: Dispatcher, settings: Settings) -> 
     if stale:
         logger.info("reconciled %s/%s stale queued analyses", recovered, len(stale))
     return recovered
-
-
-def _fail(db: Session, run: AnalysisRun, code: str) -> str:
-    transition(run, AnalysisStatus.FAILED)
-    run.error_code = code
-    run.finished_at = datetime.now(UTC)
-    db.commit()
-    logger.info("analysis failed analysis_id=%s error_code=%s", run.id, code)
-    return "failed"
-
-
-def process_analysis(
-    db: Session, storage: ObjectStorage, analysis_id: uuid.UUID, settings: Settings
-) -> str:
-    """Idempotent worker entry point. Returns the resulting status string.
-
-    Duplicate delivery is safe: the queued->running claim is a single atomic
-    UPDATE; if the run is already running/terminal, this is a no-op and no
-    duplicate evidence or findings are written.
-    """
-    # Atomic claim: only one delivery can move queued/pending -> running.
-    claimed = db.execute(
-        update(AnalysisRun)
-        .where(
-            AnalysisRun.id == analysis_id,
-            AnalysisRun.status.in_([AnalysisStatus.QUEUED, AnalysisStatus.PENDING]),
-        )
-        .values(
-            status=AnalysisStatus.RUNNING,
-            started_at=datetime.now(UTC),
-            attempts=AnalysisRun.attempts + 1,
-            error_code=None,
-        )
-    )
-    db.commit()
-    run = db.get(AnalysisRun, analysis_id)
-    if run is None:
-        logger.warning("analysis task for unknown run id=%s", analysis_id)
-        return "unknown"
-    if claimed.rowcount == 0:
-        # Already running (duplicate in flight) or terminal: do not redo work.
-        logger.info(
-            "analysis duplicate delivery ignored analysis_id=%s status=%s", run.id, run.status
-        )
-        return str(run.status)
-
-    capture = db.get(Capture, run.capture_id)
-    if capture is None:
-        return _fail(db, run, "capture_not_found")
-    if capture.organization_id != run.organization_id:
-        return _fail(db, run, "capture_tenant_mismatch")
-    if CaptureState(capture.state) is not CaptureState.READY:
-        return _fail(db, run, "unsupported_capture_state")
-    # Stream the object once: size, SHA-256, magic. Bytes are never stored/logged.
-    digest = hashlib.sha256()
-    total = 0
-    magic = b""
-    try:
-        for chunk in storage.stream(capture.object_key):
-            if not magic:
-                magic = chunk[:4]
-            total += len(chunk)
-            if total > settings.max_upload_bytes:
-                return _fail(db, run, "limit_exceeded")
-            digest.update(chunk)
-    except StorageNotFound:
-        return _fail(db, run, "capture_content_unavailable")
-    except StorageError:
-        # Transient infrastructure failure: requeue while attempts remain.
-        if (run.attempts or 0) < settings.analysis_max_attempts:
-            transition(run, AnalysisStatus.QUEUED)
-            run.error_code = "storage_unavailable"
-            run.started_at = None
-            db.commit()
-            logger.info("analysis requeued (transient) analysis_id=%s", run.id)
-            return "retry"
-        return _fail(db, run, "storage_unavailable")
-
-    if total != capture.size_bytes or digest.hexdigest() != capture.sha256:
-        return _fail(db, run, "integrity_mismatch")
-    detected = detect_format(magic)
-    if detected is None or str(detected) != str(capture.format):
-        return _fail(db, run, "invalid_capture")
-
-    # Replace (never duplicate) this stage's evidence, then succeed.
-    db.execute(EvidenceRecord.__table__.delete().where(EvidenceRecord.analysis_id == run.id))
-    db.add(
-        EvidenceRecord(
-            organization_id=run.organization_id,
-            analysis_id=run.id,
-            fact_name="capture.integrity_verified",
-            fact_value={
-                "sha256_verified": True,
-                "size_bytes": total,
-                "format": str(detected),
-                "scope": "storage integrity and format only; packets not yet parsed",
-            },
-            source=EvidenceSource.PACKET_OBSERVED,
-            visibility=EvidenceVisibility.VISIBLE,
-            confidence=1.0,
-            quality=1.0,
-        )
-    )
-    transition(run, AnalysisStatus.SUCCEEDED)
-    run.summary = {
-        "stage": settings.pipeline_version,
-        "packets_parsed": 0,
-        "note": "capture integrity verified; packet parsing is a later pipeline stage",
-    }
-    run.evidence_coverage = {"capture_integrity": "packet_observed", "ipsec_protocol": "unknown"}
-    run.finished_at = datetime.now(UTC)
-    record_event(
-        db,
-        action="analysis.succeeded",
-        resource_type="analysis_run",
-        resource_id=run.id,
-        actor_user_id=None,
-        organization_id=run.organization_id,
-        metadata={"capture_id": str(capture.id)},
-    )
-    db.commit()
-    logger.info("analysis succeeded analysis_id=%s", run.id)
-    return "succeeded"

@@ -63,11 +63,24 @@ class Settings(BaseSettings):
         return self.environment is Environment.DEVELOPMENT
 
     # Analysis orchestration
-    pipeline_version: str = "verification-0.1"
+    pipeline_version: str = "tshark-parse-0.2"
     policy_version: str = "policy-0.1"
     analysis_max_attempts: int = Field(default=3, ge=1, le=10)
     worker_concurrency: int = Field(default=2, ge=1, le=16)
     dispatch_stale_seconds: int = Field(default=300, gt=0)
+
+    # Worker-side TShark parsing (worker image only; the API never runs this)
+    tshark_path: str = "/usr/bin/tshark"  # fixed executable; never user-supplied
+    tshark_timeout_seconds: int = Field(default=120, gt=0)
+    max_tshark_output_bytes: int = Field(default=64 * 1024 * 1024, gt=0)
+    parser_version: str = "tshark-adapter-0.2"
+
+    # Evidence privacy: outer addresses are hashed in evidence by default.
+    evidence_allow_plain_addresses: bool = False
+
+    # Local ML baseline (trusted, administrator-built artifacts only)
+    ml_model_path: str | None = None
+    ml_abstain_threshold: float = Field(default=0.6, ge=0.0, le=1.0)
 
     # Hard limits for untrusted captures (enforced at upload/worker layers in later stages)
     max_upload_bytes: int = Field(default=512 * 1024 * 1024, gt=0)

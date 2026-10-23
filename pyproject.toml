@@ -26,6 +26,7 @@ dependencies = [
 
 [project.scripts]
 ipsec-admin = "ipsec_analyzer.admin:main"
+ipsec-ml = "ipsec_analyzer.ml.training:main"
 
 [dependency-groups]
 dev = [

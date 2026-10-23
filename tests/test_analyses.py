@@ -28,8 +28,43 @@ from ipsec_analyzer.services import analyses as svc
 from ipsec_analyzer.services.dispatch import CeleryDispatcher, DispatchError
 from ipsec_analyzer.storage.base import StorageError, StorageNotFound
 from ipsec_analyzer.workers.celery_app import celery_app
+from ipsec_analyzer.workers.processing import process_analysis
 
 PCAP = b"\xd4\xc3\xb2\xa1" + b"\x00" * 20 + b"PAYLOAD-BYTES"
+
+
+class FakeParser:
+    """Fake parser adapter: summaries only, records the temp path it was given."""
+
+    def __init__(self, packets=None):
+        from ipsec_analyzer.parsing.types import PacketSummary, ParseMetadata, ParseResult
+
+        self._packets = packets or [
+            PacketSummary(
+                frame=1,
+                timestamp=1.0,
+                length=len(PCAP),
+                protocol="esp",
+                src="10.0.0.1",
+                dst="10.0.0.2",
+                esp_spi="0x00001001",
+                esp_sequence=7,
+            )
+        ]
+        self.seen_paths = []
+        self._types = (ParseResult, ParseMetadata)
+
+    def parse(self, path):
+        from ipsec_analyzer.parsing.types import ParseMetadata, ParseResult
+
+        self.seen_paths.append(path)
+        assert path.exists()
+        return ParseResult(
+            packets=list(self._packets),
+            metadata=ParseMetadata(
+                tshark_version="FakeTShark 1.0", packet_count=len(self._packets)
+            ),
+        )
 
 
 class FakeStorage:
@@ -155,7 +190,7 @@ def test_request_analysis_returns_promptly_queued(ctx):
     org_a, _users, cap_a = ctx["a"]
     body = _request(ctx, org_a, cap_a)
     assert body["status"] == "queued"
-    assert body["pipeline_version"] == "verification-0.1"
+    assert body["pipeline_version"] == "tshark-parse-0.2"
     assert body["model_version"] is None
     assert body["started_at"] is None
     # Message carried only the analysis ID.
@@ -210,15 +245,26 @@ def test_reconcile_stale_queued_runs(ctx):
 def test_duplicate_delivery_is_idempotent(ctx):
     org_a, _users, cap_a = ctx["a"]
     run_id = uuid.UUID(_request(ctx, org_a, cap_a)["id"])
-    assert svc.process_analysis(ctx["db"], ctx["storage"], run_id, ctx["settings"]) == "succeeded"
+    assert (
+        process_analysis(ctx["db"], ctx["storage"], run_id, ctx["settings"], parser=FakeParser())
+        == "succeeded"
+    )
     first = ctx["db"].get(AnalysisRun, run_id)
     assert first.attempts == 1 and first.started_at and first.finished_at
+    evidence_after_first = ctx["db"].query(EvidenceRecord).filter_by(analysis_id=run_id).count()
+    assert evidence_after_first > 1  # integrity + protocol/unknown facts
 
     # Duplicate deliveries change nothing: no extra attempt, no duplicate evidence.
-    assert svc.process_analysis(ctx["db"], ctx["storage"], run_id, ctx["settings"]) == "succeeded"
+    assert (
+        process_analysis(ctx["db"], ctx["storage"], run_id, ctx["settings"], parser=FakeParser())
+        == "succeeded"
+    )
     again = ctx["db"].get(AnalysisRun, run_id)
     assert again.attempts == 1
-    assert ctx["db"].query(EvidenceRecord).filter_by(analysis_id=run_id).count() == 1
+    assert (
+        ctx["db"].query(EvidenceRecord).filter_by(analysis_id=run_id).count()
+        == evidence_after_first
+    )
 
     got = ctx["client"].get(f"/api/v1/analyses/{run_id}", headers=_h(ctx, org_a))
     assert got.json()["status"] == "succeeded"
@@ -229,16 +275,23 @@ def test_transient_storage_failure_retries_then_succeeds_and_exhausts(ctx):
     org_a, _users, cap_a = ctx["a"]
     run_id = uuid.UUID(_request(ctx, org_a, cap_a)["id"])
     ctx["storage"].stream_failures = 1
-    assert svc.process_analysis(ctx["db"], ctx["storage"], run_id, ctx["settings"]) == "retry"
+    assert (
+        process_analysis(ctx["db"], ctx["storage"], run_id, ctx["settings"], parser=FakeParser())
+        == "retry"
+    )
     run = ctx["db"].get(AnalysisRun, run_id)
     assert run.status is AnalysisStatus.QUEUED and run.error_code == "storage_unavailable"
-    assert svc.process_analysis(ctx["db"], ctx["storage"], run_id, ctx["settings"]) == "succeeded"
+    assert (
+        process_analysis(ctx["db"], ctx["storage"], run_id, ctx["settings"], parser=FakeParser())
+        == "succeeded"
+    )
 
     # Exhaustion: max 3 attempts, then terminal failure; API retry also refuses.
     run2_id = uuid.UUID(_request(ctx, org_a, cap_a)["id"])
     ctx["storage"].stream_failures = 10
     outcomes = [
-        svc.process_analysis(ctx["db"], ctx["storage"], run2_id, ctx["settings"]) for _ in range(3)
+        process_analysis(ctx["db"], ctx["storage"], run2_id, ctx["settings"], parser=FakeParser())
+        for _ in range(3)
     ]
     assert outcomes == ["retry", "retry", "failed"]
     run2 = ctx["db"].get(AnalysisRun, run2_id)
@@ -252,11 +305,17 @@ def test_invalid_capture_fails_terminally_without_retry(ctx):
     # Corrupt the stored object: hash will not match the DB record.
     ctx["storage"].objects[cap_a.object_key] = b"\xd4\xc3\xb2\xa1" + b"tampered"
     run_id = uuid.UUID(_request(ctx, org_a, cap_a)["id"])
-    assert svc.process_analysis(ctx["db"], ctx["storage"], run_id, ctx["settings"]) == "failed"
+    assert (
+        process_analysis(ctx["db"], ctx["storage"], run_id, ctx["settings"], parser=FakeParser())
+        == "failed"
+    )
     run = ctx["db"].get(AnalysisRun, run_id)
     assert run.error_code == "integrity_mismatch"
     # Duplicate delivery to a terminal run is a no-op; retry endpoint refuses.
-    assert svc.process_analysis(ctx["db"], ctx["storage"], run_id, ctx["settings"]) == "failed"
+    assert (
+        process_analysis(ctx["db"], ctx["storage"], run_id, ctx["settings"], parser=FakeParser())
+        == "failed"
+    )
     assert ctx["db"].get(AnalysisRun, run_id).attempts == 1
     r = ctx["client"].post(f"/api/v1/analyses/{run_id}/retry", headers=_h(ctx, org_a))
     assert r.status_code == 409
@@ -272,7 +331,7 @@ def test_invalid_state_transitions_enforced(ctx):
     with pytest.raises(svc.InvalidTransition):
         svc.transition(run, AnalysisStatus.FAILED)
     # Retry endpoint on a running/queued-without-dispatch-failure run conflicts.
-    svc.process_analysis(ctx["db"], ctx["storage"], run_id, ctx["settings"])
+    process_analysis(ctx["db"], ctx["storage"], run_id, ctx["settings"], parser=FakeParser())
     r = ctx["client"].post(f"/api/v1/analyses/{run_id}/retry", headers=_h(ctx, org_a))
     assert r.status_code == 409  # succeeded is terminal
 
@@ -296,3 +355,34 @@ def test_celery_config_uses_postgres_as_status_store():
     assert celery_app.conf.result_backend is None
     assert celery_app.conf.worker_prefetch_multiplier == 1
     assert celery_app.conf.worker_concurrency == 2
+
+
+def test_worker_parse_evidence_and_temp_cleanup(ctx):
+    org_a, _users, cap_a = ctx["a"]
+    run_id = uuid.UUID(_request(ctx, org_a, cap_a)["id"])
+    parser = FakeParser()
+    assert (
+        process_analysis(ctx["db"], ctx["storage"], run_id, ctx["settings"], parser=parser)
+        == "succeeded"
+    )
+    # The downloaded capture lived in a private temp dir that is now gone.
+    assert parser.seen_paths and not parser.seen_paths[0].exists()
+
+    run = ctx["db"].get(AnalysisRun, run_id)
+    assert run.summary["tshark_version"] == "FakeTShark 1.0"
+    assert run.summary["ml_prediction"]["status"] == "unavailable"  # no model configured
+    facts = {
+        e.fact_name: e for e in ctx["db"].query(EvidenceRecord).filter_by(analysis_id=run_id).all()
+    }
+    assert facts["esp.spi_observed"].fact_value["spi"] == "0x00001001"
+    assert facts["esp.encryption_algorithm"].fact_value is None
+    assert str(facts["esp.encryption_algorithm"].source) == "unknown"
+    got = ctx["client"].get(f"/api/v1/analyses/{run_id}/evidence", headers=_h(ctx, org_a))
+    assert got.status_code == 200
+    assert any(f["fact_name"] == "esp.spi_observed" for f in got.json())
+    # Cross-tenant evidence access is 404.
+    org_b, _ub, _cb = ctx["b"]
+    assert (
+        ctx["client"].get(f"/api/v1/analyses/{run_id}/evidence", headers=_h(ctx, org_b)).status_code
+        == 404
+    )

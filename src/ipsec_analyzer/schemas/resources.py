@@ -36,3 +36,24 @@ class AnalysisResponse(BaseModel):
     queued_at: datetime
     started_at: datetime | None
     finished_at: datetime | None
+
+
+class EvidenceResponse(BaseModel):
+    id: uuid.UUID
+    fact_name: str
+    fact_value: object  # JSON value; null means explicitly unknown
+    source: str
+    visibility: str
+    confidence: float | None
+    quality: float | None
+    packet_refs: list | None
+    limitation: str | None
+
+
+class ManifestResponse(BaseModel):
+    capture_id: uuid.UUID
+    source: str
+    schema_version: str
+    uploaded_by: uuid.UUID | None
+    created_at: datetime
+    manifest: dict

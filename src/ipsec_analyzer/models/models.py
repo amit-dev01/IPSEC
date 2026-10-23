@@ -99,7 +99,9 @@ class EvidenceSource(StrEnum):
 
 class EvidenceVisibility(StrEnum):
     VISIBLE = "visible"
-    ENCRYPTED_NOT_VISIBLE = "encrypted_not_visible"  # e.g. ESP payload, IKE_AUTH contents
+    # e.g. ESP payload contents, IKE_AUTH contents, Child-SA parameters
+    ENCRYPTED_OR_UNAVAILABLE = "encrypted_or_unavailable"
+    DERIVED = "derived"  # computed from visible metadata (sizes, timing, counts)
     NOT_IN_CAPTURE = "not_in_capture"  # capture started mid-session / wrong vantage point
     UNKNOWN = "unknown"
 
@@ -366,6 +368,7 @@ class EvidenceRecord(Base):
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     quality: Mapped[float | None] = mapped_column(Float, nullable=True)
     packet_refs: Mapped[list[Any] | None] = mapped_column(JSONBType, nullable=True)
+    limitation: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Optional [{"frame": 12, "packet": 12}, ...] references -> JSONB list.
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=_utcnow, server_default=func.now()
