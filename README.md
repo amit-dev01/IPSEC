@@ -20,6 +20,27 @@ capture upload, TShark parsing, evidence extraction, ML classification, assessme
 rules, reporting. Absent capabilities surface as explicit `unknown`/`unavailable`,
 never as fabricated findings or a "secure" result.
 
+## Authentication & authorization
+
+Argon2id password hashing (pwdlib), short-lived HS256 JWT access tokens
+(issuer/audience/expiry/signature validated; settings under `IPSEC_JWT_*` /
+`IPSEC_AUTH_*` in `.env.example`). `POST /api/v1/auth/login` takes a JSON
+email/password (not the OAuth2 password grant) and returns a bearer token.
+There is **no public registration** — bootstrap via the admin CLI:
+
+```bash
+IPSEC_ADMIN_PASSWORD='use-a-long-random-password' \
+  uv run ipsec-admin create-org-admin --organization "Acme" --email admin@example.com
+uv run ipsec-admin create-user --organization-id <uuid> --email a@example.com --role analyst
+```
+
+Roles: `admin` (all), `analyst` (read/write captures & analyses, read/download
+reports), `viewer` (read + report download). The organization is always derived
+from the authenticated user; cross-tenant resource access returns 404. Login is
+rate-limited per client IP + email (in-process limiter — a multi-instance
+deployment must back it with Redis). Only `/api/v1/health/*` and explicitly
+enabled development docs are unauthenticated.
+
 ## Persistence (PostgreSQL)
 
 Models live in `src/ipsec_analyzer/models/` (Organization/User, Capture, AnalysisRun,

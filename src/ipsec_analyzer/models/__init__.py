@@ -19,6 +19,7 @@ from ipsec_analyzer.models.models import (
     Organization,
     Tenant,
     User,
+    UserRole,
 )
 
 __all__ = [
@@ -40,4 +41,5 @@ __all__ = [
     "Organization",
     "Tenant",
     "User",
+    "UserRole",
 ]
