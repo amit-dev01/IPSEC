@@ -1,0 +1,13 @@
+# Analysis worker image — the ONLY image containing TShark.
+# TODO: pin by digest once registry access is available to verify it (see README).
+FROM python:3.13-slim
+RUN apt-get update && apt-get install -y --no-install-recommends tshark \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+RUN pip install --no-cache-dir uv==0.13.5
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
+COPY src ./src
+ENV PATH="/app/.venv/bin:$PATH"
+# No analysis tasks registered yet (later stage); worker will report tasks unavailable.
+CMD ["celery", "-A", "ipsec_analyzer.tasks.celery_app:celery_app", "worker", "--loglevel=INFO"]
