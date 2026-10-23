@@ -26,6 +26,19 @@ class Settings(BaseSettings):
     s3_access_key: str | None = None
     s3_secret_key: str | None = None
     s3_region: str = "us-east-1"
+    # TLS is on by default; local MinIO over http must opt out explicitly in dev.
+    s3_use_tls: bool = True
+    s3_verify_tls: bool = True
+    # Server-side encryption at rest: None (not requested), "AES256", or "aws:kms".
+    # The system never claims encryption is enabled unless one of these is set
+    # (and production refuses to start without it — see validator below).
+    s3_sse_algorithm: str | None = None
+    s3_sse_kms_key_id: str | None = None
+    capture_retention_days: int | None = Field(default=90, gt=0)
+
+    @property
+    def storage_encryption_configured(self) -> bool:
+        return self.s3_sse_algorithm in ("AES256", "aws:kms")
 
     # Authentication: signing key via env/secret manager only (falls back to
     # secret_key for single-secret deployments). Tokens are short-lived JWTs.
@@ -63,6 +76,13 @@ class Settings(BaseSettings):
                 )
             if "change-me" in self.database_url:
                 raise ValueError("IPSEC_DATABASE_URL must be explicitly configured in production")
+            if not self.s3_use_tls:
+                raise ValueError("IPSEC_S3_USE_TLS must be enabled in production")
+            if not self.storage_encryption_configured:
+                raise ValueError(
+                    "IPSEC_S3_SSE_ALGORITHM (AES256 or aws:kms) is required in production; "
+                    "encryption at rest is never assumed"
+                )
         return self
 
 

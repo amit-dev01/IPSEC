@@ -9,6 +9,7 @@ from ipsec_analyzer.core.config import Settings, get_settings
 from ipsec_analyzer.core.logging import configure_logging
 from ipsec_analyzer.core.ratelimit import LoginRateLimiter
 from ipsec_analyzer.db.session import engine
+from ipsec_analyzer.storage.s3 import S3Storage
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         openapi_url="/openapi.json" if docs else None,
     )
     app.state.settings = resolved
+    app.state.storage = S3Storage(resolved)  # lazy boto client; tests may override
     app.state.login_rate_limiter = LoginRateLimiter(
         resolved.login_max_attempts, resolved.login_window_seconds
     )

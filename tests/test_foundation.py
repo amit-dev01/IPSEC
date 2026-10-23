@@ -11,11 +11,13 @@ def test_sha256_known_vector() -> None:
     )
 
 
-def test_object_key_is_tenant_scoped_and_sanitized() -> None:
+def test_object_key_is_tenant_scoped_random_and_filename_free() -> None:
     tenant, capture = uuid.uuid4(), uuid.uuid4()
-    key = capture_object_key(tenant, capture, "../../etc/passwd.pcap")
-    assert key == f"tenants/{tenant}/captures/{capture}/passwd.pcap"
-    assert ".." not in key.split("/")[-1]
+    key = capture_object_key(tenant, capture)
+    assert key.startswith(f"tenants/{tenant}/captures/{capture}/")
+    assert "passwd" not in key and ".." not in key
+    # Random per call: never derived from user input.
+    assert capture_object_key(tenant, capture) != key
 
 
 def test_unknown_evidence_is_explicit() -> None:
