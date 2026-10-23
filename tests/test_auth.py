@@ -279,10 +279,11 @@ def test_cross_tenant_access_denied_everywhere(client, seeded):
     owner = _token(client, "admin@orga.test")
     r = client.get(f"/api/v1/captures/{cap_a}", headers=_h(owner))
     assert r.status_code == 200 and r.json()["display_name"] == "orga.pcap"
-    # Own-tenant report is explicitly unavailable (not fabricated) at this stage.
+    # Own-tenant report for an unfinished run: 409, never fabricated content.
     own_report = client.get(f"/api/v1/analyses/{run_a}/report", headers=_h(owner))
-    assert own_report.status_code == 404
-    assert own_report.json()["detail"] == "report_not_available"
+    assert own_report.status_code == 409
+    assert own_report.json()["detail"] == "report_not_ready"
+    assert own_report.json()["code"] == "report_not_ready"  # Problem Details
 
 
 def test_admin_cli_bootstrap(db, pg_engine):

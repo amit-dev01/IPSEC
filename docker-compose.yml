@@ -1,17 +1,60 @@
-# Local development only. Versions are tags; digests unverified (no registry access in CI sandbox).
+# Demo deployment only. Production requires TLS termination, managed secrets,
+# and verified image digests (see docs/runbook.md). No service here grants
+# capture privileges; live capture is a separate optional agent deployment.
 services:
-  db:
+  postgres:
     image: postgres:17
-    environment: { POSTGRES_USER: ipsec, POSTGRES_PASSWORD: change-me-local-only, POSTGRES_DB: ipsec }
-    ports: ["5432:5432"]
+    environment:
+      POSTGRES_USER: ipsec
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ipsec
     volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ipsec"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
   redis:
-    image: redis:8
-    ports: ["6379:6379"]
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
   minio:
-    image: minio/minio:latest  # pin to a RELEASE tag/digest before any non-local use
+    image: ${MINIO_IMAGE:-minio/minio:latest}  # pin by digest for real deployments
     command: server /data --console-address ":9001"
-    environment: { MINIO_ROOT_USER: change-me-local-only, MINIO_ROOT_PASSWORD: change-me-local-only }
-    ports: ["9000:9000", "9001:9001"]
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:?set S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?set S3_SECRET_KEY}
     volumes: ["miniodata:/data"]
-volumes: { pgdata: {}, miniodata: {} }
+  migrate:
+    build: { context: ., dockerfile: Dockerfile.api }
+    environment: &env
+      IPSEC_DATABASE_URL: postgresql+psycopg://ipsec:${POSTGRES_PASSWORD}@postgres:5432/ipsec
+      IPSEC_REDIS_URL: redis://redis:6379/0
+      IPSEC_S3_ENDPOINT_URL: http://minio:9000
+      IPSEC_S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      IPSEC_S3_SECRET_KEY: ${S3_SECRET_KEY}
+      IPSEC_S3_BUCKET: ipsec-captures
+      IPSEC_JWT_SIGNING_KEY: ${IPSEC_JWT_SIGNING_KEY:?set IPSEC_JWT_SIGNING_KEY}
+      IPSEC_ENVIRONMENT: production
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres: { condition: service_healthy }
+  api:
+    build: { context: ., dockerfile: Dockerfile.api }
+    environment: *env
+    ports: ["8000:8000"]
+    read_only: true
+    depends_on: [migrate, redis, minio]
+  worker:
+    build: { context: ., dockerfile: Dockerfile.worker }
+    environment: *env
+    read_only: true
+    tmpfs: ["/tmp:size=512m"]
+    cap_drop: ["ALL"]
+    depends_on: [migrate, redis, minio]
+volumes:
+  pgdata: {}
+  miniodata: {}

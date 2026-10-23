@@ -65,6 +65,7 @@ class Settings(BaseSettings):
     # Analysis orchestration
     pipeline_version: str = "tshark-parse-0.2"
     policy_version: str = "policy-0.1"
+    assessment_policy_version: str = "default-2026.1"
     analysis_max_attempts: int = Field(default=3, ge=1, le=10)
     worker_concurrency: int = Field(default=2, ge=1, le=16)
     dispatch_stale_seconds: int = Field(default=300, gt=0)

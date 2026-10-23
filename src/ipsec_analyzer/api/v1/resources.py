@@ -11,19 +11,30 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ipsec_analyzer.api.deps import require_permission
 from ipsec_analyzer.core.permissions import Permission
 from ipsec_analyzer.db.session import get_db
-from ipsec_analyzer.models import AnalysisRun, Capture, CaptureManifest, EvidenceRecord, User
+from ipsec_analyzer.models import (
+    AnalysisRun,
+    Capture,
+    CaptureManifest,
+    EvidenceRecord,
+    Finding,
+    User,
+)
 from ipsec_analyzer.schemas.manifest import LabManifestV1
 from ipsec_analyzer.schemas.resources import (
+    AnalysisDetailResponse,
+    AnalysisPage,
     AnalysisResponse,
+    CapturePage,
     CaptureResponse,
     CaptureUpdate,
     EvidenceResponse,
+    FindingResponse,
     ManifestResponse,
 )
 from ipsec_analyzer.services import analyses as analysis_service
@@ -100,21 +111,35 @@ def upload_capture(
     return _capture_response(capture)
 
 
-@router.get("/captures", response_model=list[CaptureResponse])
+@router.get("/captures", response_model=CapturePage)
 def list_captures(
     user: Annotated[User, Depends(require_permission(Permission.CAPTURES_READ))],
     db: Annotated[Session, Depends(get_db)],
     limit: int = 50,
     offset: int = 0,
-) -> list[CaptureResponse]:
+    state: str | None = None,
+) -> CapturePage:
+    """Tenant-scoped paginated list. Envelope: {items,total,limit,offset};
+    limit is bounded to [1,200]."""
+    limit = min(max(limit, 1), 200)
+    offset = max(offset, 0)
+    filters = [Capture.organization_id == user.organization_id]
+    if state:
+        filters.append(Capture.state == state)
+    total = db.scalar(select(func.count()).select_from(Capture).where(*filters)) or 0
     stmt = (
         select(Capture)
-        .where(Capture.organization_id == user.organization_id)
+        .where(*filters)
         .order_by(Capture.uploaded_at.desc())
-        .limit(min(max(limit, 1), 200))
-        .offset(max(offset, 0))
+        .limit(limit)
+        .offset(offset)
     )
-    return [_capture_response(c) for c in db.scalars(stmt)]
+    return CapturePage(
+        items=[_capture_response(c) for c in db.scalars(stmt)],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/captures/{capture_id}/download")
@@ -228,9 +253,43 @@ def request_analysis(
     POST /analyses/{id}/retry — the row is never silently stuck."""
     capture = _capture_or_404(db, user, capture_id)
     run = analysis_service.create_analysis(db, user, capture, request.app.state.settings)
-    analysis_service.dispatch(db, run, dispatcher)
+    analysis_service.dispatch(db, run, dispatcher)  # type: ignore[arg-type]
     db.refresh(run)
     return _analysis_response(run)
+
+
+@router.get("/captures/{capture_id}/analyses", response_model=AnalysisPage)
+def list_capture_analyses(
+    capture_id: uuid.UUID,
+    user: Annotated[User, Depends(require_permission(Permission.ANALYSES_READ))],
+    db: Annotated[Session, Depends(get_db)],
+    limit: int = 50,
+    offset: int = 0,
+    status: str | None = None,
+) -> AnalysisPage:
+    capture = _capture_or_404(db, user, capture_id)
+    limit = min(max(limit, 1), 200)
+    offset = max(offset, 0)
+    filters = [
+        AnalysisRun.capture_id == capture.id,
+        AnalysisRun.organization_id == user.organization_id,
+    ]
+    if status:
+        filters.append(AnalysisRun.status == status)
+    total = db.scalar(select(func.count()).select_from(AnalysisRun).where(*filters)) or 0
+    stmt = (
+        select(AnalysisRun)
+        .where(*filters)
+        .order_by(AnalysisRun.queued_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    return AnalysisPage(
+        items=[_analysis_response(r) for r in db.scalars(stmt)],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.post("/analyses/{analysis_id}/retry", response_model=AnalysisResponse)
@@ -243,7 +302,7 @@ def retry_analysis_endpoint(
 ) -> AnalysisResponse:
     run = _analysis_or_404(db, user, analysis_id)
     try:
-        analysis_service.retry_analysis(db, run, dispatcher, request.app.state.settings)
+        analysis_service.retry_analysis(db, run, dispatcher, request.app.state.settings)  # type: ignore[arg-type]
     except analysis_service.RetryNotAllowed as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     db.refresh(run)
@@ -404,13 +463,66 @@ def export_flow_dataset(
     return {"rows": rows, "row_count": len(rows)}
 
 
-@router.get("/analyses/{analysis_id}", response_model=AnalysisResponse)
+@router.get("/analyses/{analysis_id}", response_model=AnalysisDetailResponse)
 def get_analysis(
     analysis_id: uuid.UUID,
     user: Annotated[User, Depends(require_permission(Permission.ANALYSES_READ))],
     db: Annotated[Session, Depends(get_db)],
-) -> AnalysisResponse:
-    return _analysis_response(_analysis_or_404(db, user, analysis_id))
+) -> AnalysisDetailResponse:
+    run = _analysis_or_404(db, user, analysis_id)
+    detail = AnalysisDetailResponse(**_analysis_response(run).model_dump())
+    rows = list(
+        db.scalars(
+            select(EvidenceRecord)
+            .where(EvidenceRecord.analysis_id == run.id)
+            .order_by(EvidenceRecord.fact_name)
+        )
+    )
+
+    def ev(e):
+        return EvidenceResponse(
+            id=e.id,
+            fact_name=e.fact_name,
+            fact_value=e.fact_value,
+            source=str(e.source),
+            visibility=str(e.visibility),
+            confidence=e.confidence,
+            quality=e.quality,
+            packet_refs=e.packet_refs,
+            limitation=e.limitation,
+        )
+
+    detail.packet_observed_facts = [ev(e) for e in rows if str(e.source) == "packet_observed"]
+    detail.supplied_facts = [
+        ev(e) for e in rows if str(e.source) in ("lab_manifest", "analyst_supplied")
+    ]
+    detail.model_inferred_facts = [ev(e) for e in rows if str(e.source) == "model_inferred"]
+    detail.unknown_facts = [
+        ev(e) for e in rows if str(e.source) == "unknown" or e.fact_value is None
+    ]
+
+    def fd(f):
+        return FindingResponse(
+            rule_id=f.rule_id,
+            severity=str(f.severity),
+            confidence=f.confidence,
+            actual_value=f.actual_value,
+            expected_value=f.expected_value,
+            recommendation=f.recommendation,
+            evidence_refs=f.evidence_refs,
+            policy_version=f.policy_version,
+            source_refs=f.source_refs,
+            status=str(f.status),
+        )
+
+    frows = list(
+        db.scalars(select(Finding).where(Finding.analysis_id == run.id).order_by(Finding.rule_id))
+    )
+    detail.findings = [fd(f) for f in frows if not f.rule_id.startswith("GAP-")]
+    detail.evidence_gaps = [fd(f) for f in frows if f.rule_id.startswith("GAP-")]
+    if str(run.status) == "succeeded":
+        detail.report_url = f"/api/v1/analyses/{run.id}/report"
+    return detail
 
 
 @router.get("/analyses/{analysis_id}/report")
@@ -418,6 +530,39 @@ def download_report(
     analysis_id: uuid.UUID,
     user: Annotated[User, Depends(require_permission(Permission.REPORTS_DOWNLOAD))],
     db: Annotated[Session, Depends(get_db)],
-) -> dict:
-    _analysis_or_404(db, user, analysis_id)  # tenant check first; 404 cross-tenant
-    raise HTTPException(status_code=404, detail="report_not_available")
+    format: str = "json",
+):
+    """Generate the executive/technical report for a completed analysis.
+
+    JSON by default; ``?format=pdf`` returns an escaped ReportLab PDF. Reports
+    are tenant-scoped, audited, and contain no secrets, payloads, or storage
+    paths. Incomplete analyses return 409 ``report_not_ready``.
+    """
+    from fastapi.responses import JSONResponse, Response
+
+    from ipsec_analyzer.reporting.builder import build_report
+    from ipsec_analyzer.reporting.pdf import render_pdf
+
+    run = _analysis_or_404(db, user, analysis_id)  # tenant check first
+    if str(run.status) != "succeeded":
+        raise HTTPException(status_code=409, detail="report_not_ready")
+    if format not in ("json", "pdf"):
+        raise HTTPException(status_code=422, detail="unsupported_report_format")
+    report = build_report(db, run)
+    record_event(
+        db,
+        action="report.generated",
+        resource_type="analysis",
+        actor_user_id=user.id,
+        organization_id=user.organization_id,
+        resource_id=run.id,
+        metadata={"format": format},
+    )
+    db.commit()
+    if format == "pdf":
+        return Response(
+            content=render_pdf(report),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="report-{run.id}.pdf"'},
+        )
+    return JSONResponse(content=report)

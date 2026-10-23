@@ -57,3 +57,55 @@ class ManifestResponse(BaseModel):
     uploaded_by: uuid.UUID | None
     created_at: datetime
     manifest: dict
+
+
+class Page(BaseModel):
+    items: list
+    total: int
+    limit: int
+    offset: int
+
+
+class CapturePage(Page):
+    items: list[CaptureResponse]
+
+
+class AnalysisPage(Page):
+    items: list[AnalysisResponse]
+
+
+class FindingResponse(BaseModel):
+    rule_id: str
+    severity: str
+    confidence: float | None
+    actual_value: object = None
+    expected_value: object = None
+    recommendation: str | None = None
+    evidence_refs: list | None = None
+    policy_version: str | None = None
+    source_refs: list | None = None
+    status: str
+
+
+class AnalysisDetailResponse(AnalysisResponse):
+    """Sections kept strictly separate: packet-observed facts are never merged
+    with manifest/analyst-supplied facts or model inferences."""
+
+    packet_observed_facts: list[EvidenceResponse] = []
+    supplied_facts: list[EvidenceResponse] = []
+    model_inferred_facts: list[EvidenceResponse] = []
+    unknown_facts: list[EvidenceResponse] = []
+    findings: list[FindingResponse] = []
+    evidence_gaps: list[FindingResponse] = []
+    report_url: str | None = None
+
+
+class ProblemDetail(BaseModel):
+    """RFC 9457-style Problem Details. Kept additive: ``detail`` mirrors
+    ``title`` so existing clients keep working."""
+
+    type: str = "about:blank"
+    title: str
+    detail: str
+    status: int
+    code: str | None = None

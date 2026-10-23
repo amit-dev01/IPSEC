@@ -13,6 +13,8 @@ from pathlib import Path
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from ipsec_analyzer.assessment.engine import FactView, evaluate
+from ipsec_analyzer.assessment.policies import get_profile
 from ipsec_analyzer.core.config import Settings
 from ipsec_analyzer.ml.classifier import TrafficClassifier, unavailable_prediction
 from ipsec_analyzer.ml.features import capture_features, flow_features
@@ -89,7 +91,7 @@ def process_analysis(
     if run is None:
         logger.warning("analysis task for unknown run id=%s", analysis_id)
         return "unknown"
-    if claimed.rowcount == 0:
+    if claimed.rowcount == 0:  # type: ignore[attr-defined]
         # Already running (duplicate in flight) or terminal: do not redo work.
         logger.info(
             "analysis duplicate delivery ignored analysis_id=%s status=%s", run.id, run.status
@@ -154,7 +156,7 @@ def process_analysis(
     drafts = build_evidence(packets, allow_plain_addresses=settings.evidence_allow_plain_addresses)
     drafts.insert(
         0,
-        type(drafts[0])(
+        type(drafts[0])(  # type: ignore[arg-type]
             fact_name="capture.integrity_verified",
             fact_value={"sha256_verified": True, "size_bytes": total, "format": str(detected)},
             source=EvidenceSource.PACKET_OBSERVED,
@@ -198,8 +200,8 @@ def process_analysis(
         run.model_version = prediction["model_version"]
 
     # Replace (never duplicate) this run's evidence/findings, then succeed.
-    db.execute(Finding.__table__.delete().where(Finding.analysis_id == run.id))
-    db.execute(EvidenceRecord.__table__.delete().where(EvidenceRecord.analysis_id == run.id))
+    db.execute(Finding.__table__.delete().where(Finding.analysis_id == run.id))  # type: ignore[attr-defined]
+    db.execute(EvidenceRecord.__table__.delete().where(EvidenceRecord.analysis_id == run.id))  # type: ignore[attr-defined]
     records: dict[int, EvidenceRecord] = {}
     for draft in drafts:
         record = EvidenceRecord(
@@ -217,8 +219,51 @@ def process_analysis(
         db.add(record)
         records[id(draft)] = record
     db.flush()
+
+    # Deterministic assessment over the persisted evidence (policy-versioned).
+    fact_views = [
+        FactView(
+            name=draft.fact_name,
+            value=draft.fact_value,
+            source=str(draft.source),
+            visibility=str(draft.visibility),
+            confidence=draft.confidence,
+            id=str(records[id(draft)].id) if id(draft) in records else None,
+        )
+        for draft in drafts
+    ]
+    profile = get_profile(settings.assessment_policy_version)
+    assessment = evaluate(
+        fact_views,
+        profile,
+        ml_confidence=prediction["confidence"] if prediction["status"] == "available" else None,
+    )
+    for fd in assessment.findings:
+        db.add(
+            Finding(
+                organization_id=run.organization_id,
+                analysis_id=run.id,
+                rule_id=fd.rule_id,
+                severity=fd.severity,
+                confidence=fd.confidence,
+                evidence_refs=fd.evidence_refs,
+                actual_value=fd.actual_value,
+                expected_value=fd.expected_value,
+                recommendation=fd.recommendation,
+                policy_version=fd.policy_version,
+                source_refs=fd.source_refs,
+                status="open",
+            )
+        )
+    run.risk_score = assessment.risk_score
+    run.security_score = assessment.security_score
+    run.policy_version = profile.version
+
     for draft in discrepancy_drafts:
-        record = records.get(id(draft))
+        maybe_record = records.get(id(draft))
+        if maybe_record is None:
+            continue
+        record = maybe_record
         db.add(
             Finding(
                 organization_id=run.organization_id,
@@ -230,6 +275,7 @@ def process_analysis(
                 recommendation=(
                     "Review lab manifest vs packet-observed selection; both sources retained."
                 ),
+                policy_version=profile.version,
                 status="open",
             )
         )
@@ -247,6 +293,14 @@ def process_analysis(
         "unsupported_fields": meta.unsupported_fields,
         "flow_features": flows,
         "ml_prediction": prediction,
+        "assessment": {
+            "status": assessment.assessment_status,
+            "coverage": assessment.coverage,
+            "protocol_evidence_confidence": assessment.protocol_evidence_confidence,
+            "ml_traffic_confidence": assessment.ml_traffic_confidence,
+            "policy_version": profile.version,
+            "finding_count": len(assessment.findings),
+        },
     }
     protocols_seen = {p.protocol for p in packets}
     run.evidence_coverage = {

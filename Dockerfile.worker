@@ -1,13 +1,19 @@
 # Analysis worker image — the ONLY image containing TShark.
 # TODO: pin by digest once registry access is available to verify it (see README).
 FROM python:3.13-slim
+# Digest pinning: set PYTHON_IMAGE to python:3.13-slim@sha256:<verified> in CI/release
+# once registry access is available; digests are intentionally not guessed here.
 RUN apt-get update && apt-get install -y --no-install-recommends tshark \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
+RUN groupadd -r app && useradd -r -g app app
 RUN pip install --no-cache-dir uv==0.13.5
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 COPY src ./src
+COPY alembic.ini ./
+COPY migrations ./migrations
 ENV PATH="/app/.venv/bin:$PATH"
 # Analysis tasks are registered (workers/tasks.py); TShark exists only in this image.
-CMD ["celery", "-A", "ipsec_analyzer.workers.celery_app:celery_app", "worker", "--loglevel=INFO"]
+USER app
+CMD ["celery", "-A", "ipsec_analyzer.workers.celery_app:celery_app", "worker", "--loglevel=INFO", "--concurrency=2"]

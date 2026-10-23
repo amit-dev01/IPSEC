@@ -1,11 +1,17 @@
 # API image — TShark is intentionally NOT installed here.
 # TODO: pin by digest once registry access is available to verify it (see README).
 FROM python:3.13-slim
+# Digest pinning: set PYTHON_IMAGE to python:3.13-slim@sha256:<verified> in CI/release
+# once registry access is available; digests are intentionally not guessed here.
 WORKDIR /app
+RUN groupadd -r app && useradd -r -g app app
 RUN pip install --no-cache-dir uv==0.13.5
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 COPY src ./src
+COPY alembic.ini ./
+COPY migrations ./migrations
 ENV PATH="/app/.venv/bin:$PATH"
 EXPOSE 8000
+USER app
 CMD ["uvicorn", "ipsec_analyzer.main:app", "--host", "0.0.0.0", "--port", "8000"]
