@@ -110,6 +110,12 @@ class FindingSeverity(StrEnum):
     CRITICAL = "critical"
 
 
+class UserRole(StrEnum):
+    ADMIN = "admin"
+    ANALYST = "analyst"
+    VIEWER = "viewer"
+
+
 class FindingStatus(StrEnum):
     OPEN = "open"
     ACKNOWLEDGED = "acknowledged"
@@ -160,6 +166,11 @@ class User(Base):
         ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
     )
     email: Mapped[str] = mapped_column(String(320), nullable=False)
+    # Argon2id hash only — plaintext passwords are never stored or logged.
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    role: Mapped[UserRole] = mapped_column(
+        _enum(UserRole, "user_role"), nullable=False, default=UserRole.VIEWER
+    )
     display_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default="true"
