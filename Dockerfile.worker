@@ -10,4 +10,4 @@ RUN uv sync --frozen --no-dev
 COPY src ./src
 ENV PATH="/app/.venv/bin:$PATH"
 # No analysis tasks registered yet (later stage); worker will report tasks unavailable.
-CMD ["celery", "-A", "ipsec_analyzer.tasks.celery_app:celery_app", "worker", "--loglevel=INFO"]
+CMD ["celery", "-A", "ipsec_analyzer.workers.celery_app:celery_app", "worker", "--loglevel=INFO"]

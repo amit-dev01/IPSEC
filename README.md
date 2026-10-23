@@ -5,39 +5,43 @@ allowlisted passive agent). It does not inject packets, probe targets, recover k
 decrypt traffic, or handle PSKs/private keys. PCAPs are never sent to any external
 LLM/third-party AI service.
 
-## Status: Stage 1 — foundation only
+See [`docs/architecture.md`](docs/architecture.md) for the full scaffold description.
 
-Implemented: project scaffold (`src/ipsec_analyzer/`), settings with fail-closed
-production checks, SQLAlchemy 2 models (tenants/users/captures/analysis_jobs),
+## Status: scaffold stage
+
+Implemented: the FastAPI project scaffold only — app factory with lifespan handling,
+pydantic-settings configuration, structured JSON logging, SQLAlchemy 2 models,
 tenant-scoped capture lookup, tenant-isolated S3 object keys, streaming SHA-256,
-Celery app configuration (no analysis tasks yet), `/health/live` and `/health/ready`
+Celery worker configuration, and `/api/v1/health/live` + `/api/v1/health/ready`
 (ready only when PostgreSQL actually answers, otherwise 503 `unavailable`).
 
-Not implemented yet (later stages, on request): authentication, capture upload,
-TShark parsing, protocol evidence extraction, ML classification, assessment rules,
-reporting. Absent capabilities surface as explicit `unknown`/`unavailable`, never
-as fabricated findings or a "secure" result.
+**Not implemented yet** (later stages, on request): packet processing, authentication,
+capture upload, TShark parsing, evidence extraction, ML classification, assessment
+rules, reporting. Absent capabilities surface as explicit `unknown`/`unavailable`,
+never as fabricated findings or a "secure" result.
 
-## Layout
-- `api/` FastAPI routes (sync `def` handlers for blocking DB/storage work)
-- `db/` SQLAlchemy 2 + Psycopg 3 models/session/repository
-- `storage/` private S3-compatible storage (MinIO locally), tenant-prefixed keys
-- `tasks/` Celery app (Redis broker); TShark exists only in `Dockerfile.worker`
-- `parsing/`, `evidence/`, `ml/`, `assessment/`, `reporting/` module boundaries
+## Local development
 
-## Develop
+Prerequisite: [`uv`](https://docs.astral.sh/uv/).
+
 ```bash
-uv sync --group dev
+cp .env.example .env        # local-only placeholder values; never commit real secrets
+uv sync --frozen --group dev   # install exactly from uv.lock
+uv run uvicorn ipsec_analyzer.main:app --host 0.0.0.0 --port 8000
+curl http://localhost:8000/api/v1/health/live
 uv run pytest -q
 uv run ruff check src tests
-uv run uvicorn ipsec_analyzer.main:app --reload
+uv run ruff format --check src tests
 ```
 
+Secrets are read only from environment variables (or a secret manager that injects
+them into the environment). `.env.example` contains placeholder values only.
+
 ## Version / pinning notes
-Dependencies were resolved and pinned in `uv.lock` against PyPI on 2026-10-23
-(FastAPI 0.161.1, SQLAlchemy 2.1.6, Pydantic 2.14.1, Celery 5.6.3, Psycopg 3.3.6,
-scikit-learn 1.9.1 — see `uv.lock`). Development used the sandbox's Python 3.11.2;
-Python 3.13 could not be downloaded there (TLS failure to GitHub), so 3.13 is the
-container target but is **not yet verified locally**. Container images and Compose
-services are pinned by version tag only; **digests could not be verified** (no
-Docker/registry access in the sandbox) and must be digest-pinned before production.
+Dependencies were resolved against PyPI and pinned in `uv.lock` (FastAPI 0.161.1,
+SQLAlchemy 2.1.6, Pydantic 2.14.1, Celery 5.6.3, Psycopg 3.3.6, scikit-learn 1.9.1 —
+see `uv.lock`). Development used the sandbox's Python 3.11.2; Python 3.13 could not
+be downloaded there (TLS failure to GitHub), so containers targeting 3.13 are not yet
+locally verified. Container/Compose images are pinned by version tag only; digests
+could not be verified (no Docker/registry access in the sandbox) and must be
+digest-pinned before production.

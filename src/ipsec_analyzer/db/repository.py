@@ -5,7 +5,7 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ipsec_analyzer.db.models import Capture
+from ipsec_analyzer.models.models import Capture
 
 
 def get_capture_for_tenant(

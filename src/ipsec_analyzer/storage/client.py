@@ -1,7 +1,7 @@
 import boto3
 from botocore.config import Config
 
-from ipsec_analyzer.config import Settings
+from ipsec_analyzer.core.config import Settings
 
 
 def make_s3_client(settings: Settings):  # noqa: ANN202 - boto3 has no typed client export

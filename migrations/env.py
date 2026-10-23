@@ -3,8 +3,8 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from ipsec_analyzer.config import get_settings
-from ipsec_analyzer.db import models  # noqa: F401  (register tables)
+from ipsec_analyzer import models as _models  # noqa: F401  (register tables)
+from ipsec_analyzer.core.config import get_settings
 from ipsec_analyzer.db.base import Base
 
 config = context.config

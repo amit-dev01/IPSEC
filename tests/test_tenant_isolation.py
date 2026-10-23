@@ -4,8 +4,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from ipsec_analyzer.db.base import Base
-from ipsec_analyzer.db.models import Capture, Tenant, User
 from ipsec_analyzer.db.repository import get_capture_for_tenant
+from ipsec_analyzer.models import Capture, Tenant, User
 
 
 def test_capture_lookup_is_tenant_scoped() -> None:
