@@ -1,0 +1,11 @@
+# API image — TShark is intentionally NOT installed here.
+# TODO: pin by digest once registry access is available to verify it (see README).
+FROM python:3.13-slim
+WORKDIR /app
+RUN pip install --no-cache-dir uv==0.13.5
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
+COPY src ./src
+ENV PATH="/app/.venv/bin:$PATH"
+EXPOSE 8000
+CMD ["uvicorn", "ipsec_analyzer.main:app", "--host", "0.0.0.0", "--port", "8000"]
