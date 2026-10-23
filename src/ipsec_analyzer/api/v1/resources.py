@@ -19,9 +19,11 @@ from ipsec_analyzer.core.permissions import Permission
 from ipsec_analyzer.db.session import get_db
 from ipsec_analyzer.models import AnalysisRun, Capture, User
 from ipsec_analyzer.schemas.resources import AnalysisResponse, CaptureResponse, CaptureUpdate
+from ipsec_analyzer.services import analyses as analysis_service
 from ipsec_analyzer.services import captures as capture_service
 from ipsec_analyzer.services.audit import record_event
 from ipsec_analyzer.services.captures import UploadRejected, ingest_capture
+from ipsec_analyzer.services.dispatch import CeleryDispatcher
 from ipsec_analyzer.storage.base import ObjectStorage, StorageError, StorageNotFound
 from ipsec_analyzer.storage.keys import sanitize_display_name
 
@@ -66,6 +68,10 @@ def _capture_response(c: Capture) -> CaptureResponse:
 
 def get_storage(request: Request) -> ObjectStorage:
     return request.app.state.storage
+
+
+def get_dispatcher(request: Request):  # noqa: ANN202 - callable returning None
+    return getattr(request.app.state, "dispatcher", CeleryDispatcher().enqueue)
 
 
 @router.post("/captures", response_model=CaptureResponse, status_code=201)
@@ -181,22 +187,69 @@ def delete_capture(
         raise HTTPException(status_code=exc.status_code, detail=exc.code) from exc
 
 
+def _analysis_response(run: AnalysisRun) -> AnalysisResponse:
+    return AnalysisResponse(
+        id=run.id,
+        organization_id=run.organization_id,
+        capture_id=run.capture_id,
+        status=str(run.status),
+        pipeline_version=run.pipeline_version,
+        model_version=run.model_version,
+        policy_version=run.policy_version,
+        attempts=run.attempts or 0,
+        dispatch_attempts=run.dispatch_attempts or 0,
+        error_code=run.error_code,
+        risk_score=run.risk_score,
+        security_score=run.security_score,
+        queued_at=run.queued_at,
+        started_at=run.started_at,
+        finished_at=run.finished_at,
+    )
+
+
+@router.post("/captures/{capture_id}/analyses", response_model=AnalysisResponse, status_code=202)
+def request_analysis(
+    capture_id: uuid.UUID,
+    request: Request,
+    user: Annotated[User, Depends(require_permission(Permission.ANALYSES_WRITE))],
+    db: Annotated[Session, Depends(get_db)],
+    dispatcher: Annotated[object, Depends(get_dispatcher)],
+) -> AnalysisResponse:
+    """Create the AnalysisRun row, then dispatch by ID only. Returns promptly
+    (202) whether or not the broker accepted the message; a dispatch failure is
+    recorded on the row as error_code=dispatch_failed and can be retried via
+    POST /analyses/{id}/retry — the row is never silently stuck."""
+    capture = _capture_or_404(db, user, capture_id)
+    run = analysis_service.create_analysis(db, user, capture, request.app.state.settings)
+    analysis_service.dispatch(db, run, dispatcher)
+    db.refresh(run)
+    return _analysis_response(run)
+
+
+@router.post("/analyses/{analysis_id}/retry", response_model=AnalysisResponse)
+def retry_analysis_endpoint(
+    analysis_id: uuid.UUID,
+    request: Request,
+    user: Annotated[User, Depends(require_permission(Permission.ANALYSES_WRITE))],
+    db: Annotated[Session, Depends(get_db)],
+    dispatcher: Annotated[object, Depends(get_dispatcher)],
+) -> AnalysisResponse:
+    run = _analysis_or_404(db, user, analysis_id)
+    try:
+        analysis_service.retry_analysis(db, run, dispatcher, request.app.state.settings)
+    except analysis_service.RetryNotAllowed as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    db.refresh(run)
+    return _analysis_response(run)
+
+
 @router.get("/analyses/{analysis_id}", response_model=AnalysisResponse)
 def get_analysis(
     analysis_id: uuid.UUID,
     user: Annotated[User, Depends(require_permission(Permission.ANALYSES_READ))],
     db: Annotated[Session, Depends(get_db)],
 ) -> AnalysisResponse:
-    run = _analysis_or_404(db, user, analysis_id)
-    return AnalysisResponse(
-        id=run.id,
-        organization_id=run.organization_id,
-        capture_id=run.capture_id,
-        status=str(run.status),
-        error_code=run.error_code,
-        risk_score=run.risk_score,
-        security_score=run.security_score,
-    )
+    return _analysis_response(_analysis_or_404(db, user, analysis_id))
 
 
 @router.get("/analyses/{analysis_id}/report")

@@ -58,6 +58,28 @@ location /api/v1/captures {
 }
 ```
 
+## Analysis jobs (Celery + Redis)
+
+`POST /api/v1/captures/{id}/analyses` (`analyses:write`) stores an `AnalysisRun`
+row first, then dispatches a Celery message containing **only the analysis ID**
+— never PCAP data, secrets, or user options. It returns `202` promptly; the
+worker does the (bounded) processing. PostgreSQL is the authoritative status
+store (the Celery result backend is disabled). Lifecycle:
+`queued → running → succeeded|failed`, with a documented retry path
+`failed → queued` for transient error codes only (`storage_unavailable`,
+`worker_timeout`, `broker_unavailable`, `dispatch_failed`) while attempts remain
+(`IPSEC_ANALYSIS_MAX_ATTEMPTS`, default 3) via `POST /api/v1/analyses/{id}/retry`.
+Invalid/unsupported captures fail terminally and are never retried. If the
+broker is down at request time, the row stays `queued` with
+`error_code=dispatch_failed` (never silently stuck): retry it via the endpoint,
+or let the periodic `reconcile_queued_analyses` beat task redispatch stale
+queued runs. Worker claim is atomic and processing is idempotent — duplicate
+deliveries are no-ops and never duplicate evidence/findings. The current
+pipeline stage (`verification-0.1`) verifies stored-capture size/SHA-256/magic
+in the worker and records that as evidence; it produces no findings or scores.
+Run a worker with: `uv run celery -A ipsec_analyzer.workers.celery_app:celery_app worker`
+(concurrency `IPSEC_WORKER_CONCURRENCY`, default 2, prefetch 1).
+
 ## Authentication & authorization
 
 Argon2id password hashing (pwdlib), short-lived HS256 JWT access tokens

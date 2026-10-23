@@ -1,4 +1,3 @@
-
 from ipsec_analyzer.core.config import Settings
 from ipsec_analyzer.storage.s3 import S3Storage
 
