@@ -73,7 +73,7 @@ def test_defaults_and_state_values(db):
     cap = _capture(db, org, user)
     run = _run(db, org, cap, user)
     assert cap.state is CaptureState.UNKNOWN
-    assert run.status is AnalysisStatus.PENDING
+    assert run.status is AnalysisStatus.QUEUED
     assert run.risk_score is None and run.security_score is None  # unknown, not a pass
     assert cap.created_at.tzinfo is not None
     db.commit()

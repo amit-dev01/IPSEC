@@ -198,9 +198,11 @@ behind each statement; aggregate scores must not average away `unknown`s.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> pending: job created, enqueued by ID
-    pending --> running: worker claims job (tenant re-checked)
-    pending --> unavailable: worker/capability missing
+    [*] --> queued: AnalysisRun row committed, then enqueued by ID only
+    queued --> running: worker atomically claims job (tenant re-checked)
+    queued --> cancelled: requester/admin cancels
+    failed --> queued: documented retry (transient error codes only, attempts remaining)
+    running --> queued: worker requeue after transient failure (attempts remaining)
     running --> succeeded: parse + assess completed (findings may still be 'unknown')
     running --> failed: integrity mismatch, malformed/oversized capture, timeout, parser error
     running --> unavailable: required capability not present in worker

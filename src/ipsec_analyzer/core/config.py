@@ -62,6 +62,13 @@ class Settings(BaseSettings):
             return self.enable_docs
         return self.environment is Environment.DEVELOPMENT
 
+    # Analysis orchestration
+    pipeline_version: str = "verification-0.1"
+    policy_version: str = "policy-0.1"
+    analysis_max_attempts: int = Field(default=3, ge=1, le=10)
+    worker_concurrency: int = Field(default=2, ge=1, le=16)
+    dispatch_stale_seconds: int = Field(default=300, gt=0)
+
     # Hard limits for untrusted captures (enforced at upload/worker layers in later stages)
     max_upload_bytes: int = Field(default=512 * 1024 * 1024, gt=0)
     max_packets: int = Field(default=2_000_000, gt=0)

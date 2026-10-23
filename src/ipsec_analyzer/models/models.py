@@ -24,6 +24,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Index,
+    Integer,
     String,
     Text,
     UniqueConstraint,
@@ -76,7 +77,8 @@ CaptureStatus = CaptureState
 
 
 class AnalysisStatus(StrEnum):
-    PENDING = "pending"
+    QUEUED = "queued"
+    PENDING = "pending"  # legacy scaffold value; treated as queued, no longer emitted
     RUNNING = "running"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
@@ -284,7 +286,13 @@ class AnalysisRun(Base):
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     status: Mapped[AnalysisStatus] = mapped_column(
-        _enum(AnalysisStatus, "analysis_status"), nullable=False, default=AnalysisStatus.PENDING
+        _enum(AnalysisStatus, "analysis_status"), nullable=False, default=AnalysisStatus.QUEUED
+    )
+    # Worker execution attempts and broker dispatch attempts are tracked
+    # separately: a dispatch failure never consumes an execution attempt.
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    dispatch_attempts: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
     )
     pipeline_version: Mapped[str] = mapped_column(String(64), nullable=False)
     model_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
