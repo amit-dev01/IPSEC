@@ -1,5 +1,6 @@
 """ORM models."""
 
+from ipsec_analyzer.models.manifest import CaptureManifest
 from ipsec_analyzer.models.models import (
     AnalysisJob,
     AnalysisRun,
@@ -28,6 +29,7 @@ __all__ = [
     "AnalysisStatus",
     "AuditEvent",
     "Capture",
+    "CaptureManifest",
     "CaptureFormat",
     "CaptureState",
     "CaptureStatus",

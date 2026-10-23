@@ -9,5 +9,5 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 COPY src ./src
 ENV PATH="/app/.venv/bin:$PATH"
-# No analysis tasks registered yet (later stage); worker will report tasks unavailable.
+# Analysis tasks are registered (workers/tasks.py); TShark exists only in this image.
 CMD ["celery", "-A", "ipsec_analyzer.workers.celery_app:celery_app", "worker", "--loglevel=INFO"]

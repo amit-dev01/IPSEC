@@ -17,8 +17,15 @@ from sqlalchemy.orm import Session
 from ipsec_analyzer.api.deps import require_permission
 from ipsec_analyzer.core.permissions import Permission
 from ipsec_analyzer.db.session import get_db
-from ipsec_analyzer.models import AnalysisRun, Capture, User
-from ipsec_analyzer.schemas.resources import AnalysisResponse, CaptureResponse, CaptureUpdate
+from ipsec_analyzer.models import AnalysisRun, Capture, CaptureManifest, EvidenceRecord, User
+from ipsec_analyzer.schemas.manifest import LabManifestV1
+from ipsec_analyzer.schemas.resources import (
+    AnalysisResponse,
+    CaptureResponse,
+    CaptureUpdate,
+    EvidenceResponse,
+    ManifestResponse,
+)
 from ipsec_analyzer.services import analyses as analysis_service
 from ipsec_analyzer.services import captures as capture_service
 from ipsec_analyzer.services.audit import record_event
@@ -241,6 +248,160 @@ def retry_analysis_endpoint(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     db.refresh(run)
     return _analysis_response(run)
+
+
+@router.post("/captures/{capture_id}/manifest", response_model=ManifestResponse, status_code=201)
+def attach_manifest(
+    capture_id: uuid.UUID,
+    payload: LabManifestV1,
+    user: Annotated[User, Depends(require_permission(Permission.CAPTURES_WRITE))],
+    db: Annotated[Session, Depends(get_db)],
+) -> ManifestResponse:
+    """Attach/replace the lab manifest for an owned capture. Strict schema
+    validation (secrets are structurally rejected). Packet-observed facts are
+    never overwritten; conflicts surface as discrepancies on the next run."""
+    capture = _capture_or_404(db, user, capture_id)
+    manifest_dict = payload.model_dump(mode="json")
+    row = db.scalar(select(CaptureManifest).where(CaptureManifest.capture_id == capture.id))
+    if row is None:
+        row = CaptureManifest(
+            organization_id=user.organization_id,
+            capture_id=capture.id,
+            uploaded_by=user.id,
+            source="lab_manifest",
+            schema_version=payload.schema_version,
+            manifest=manifest_dict,
+        )
+        db.add(row)
+    else:
+        row.manifest = manifest_dict
+        row.schema_version = payload.schema_version
+        row.uploaded_by = user.id
+    record_event(
+        db,
+        action="capture.manifest_attached",
+        resource_type="capture",
+        resource_id=capture.id,
+        actor_user_id=user.id,
+        organization_id=user.organization_id,
+        metadata={"schema_version": payload.schema_version},
+    )
+    db.commit()
+    db.refresh(row)
+    return ManifestResponse(
+        capture_id=capture.id,
+        source=row.source,
+        schema_version=row.schema_version,
+        uploaded_by=row.uploaded_by,
+        created_at=row.created_at,
+        manifest=row.manifest,
+    )
+
+
+@router.get("/captures/{capture_id}/manifest", response_model=ManifestResponse)
+def get_manifest(
+    capture_id: uuid.UUID,
+    user: Annotated[User, Depends(require_permission(Permission.CAPTURES_READ))],
+    db: Annotated[Session, Depends(get_db)],
+) -> ManifestResponse:
+    capture = _capture_or_404(db, user, capture_id)
+    row = db.scalar(select(CaptureManifest).where(CaptureManifest.capture_id == capture.id))
+    if row is None:
+        raise HTTPException(status_code=404, detail="manifest_not_available")
+    return ManifestResponse(
+        capture_id=capture.id,
+        source=row.source,
+        schema_version=row.schema_version,
+        uploaded_by=row.uploaded_by,
+        created_at=row.created_at,
+        manifest=row.manifest,
+    )
+
+
+@router.get("/analyses/{analysis_id}/evidence", response_model=list[EvidenceResponse])
+def list_evidence(
+    analysis_id: uuid.UUID,
+    user: Annotated[User, Depends(require_permission(Permission.ANALYSES_READ))],
+    db: Annotated[Session, Depends(get_db)],
+) -> list[EvidenceResponse]:
+    run = _analysis_or_404(db, user, analysis_id)
+    rows = db.scalars(
+        select(EvidenceRecord)
+        .where(
+            EvidenceRecord.analysis_id == run.id,
+            EvidenceRecord.organization_id == user.organization_id,
+        )
+        .order_by(EvidenceRecord.fact_name)
+    )
+    return [
+        EvidenceResponse(
+            id=r.id,
+            fact_name=r.fact_name,
+            fact_value=r.fact_value,
+            source=str(r.source),
+            visibility=str(r.visibility),
+            confidence=r.confidence,
+            quality=r.quality,
+            packet_refs=r.packet_refs,
+            limitation=r.limitation,
+        )
+        for r in rows
+    ]
+
+
+@router.get("/admin/exports/flow-dataset")
+def export_flow_dataset(
+    user: Annotated[User, Depends(require_permission(Permission.ORG_ADMIN))],
+    db: Annotated[Session, Depends(get_db)],
+) -> dict:
+    """Admin-only de-identified export for offline training/evaluation.
+
+    Rows contain only flow-metadata features plus lab-manifest labels, grouped
+    by capture/lab run. No PCAPs, no credentials, and no endpoint identifiers
+    (flow features never carried addresses in the first place)."""
+    rows: list[dict] = []
+    manifests = db.scalars(
+        select(CaptureManifest).where(CaptureManifest.organization_id == user.organization_id)
+    )
+    for manifest_row in manifests:
+        label = (manifest_row.manifest or {}).get("traffic_category")
+        if not label:
+            continue
+        run = db.scalar(
+            select(AnalysisRun)
+            .where(
+                AnalysisRun.capture_id == manifest_row.capture_id,
+                AnalysisRun.organization_id == user.organization_id,
+                AnalysisRun.status == "succeeded",
+            )
+            .order_by(AnalysisRun.created_at.desc())
+        )
+        if run is None or not run.summary:
+            continue
+        for features in run.summary.get("flow_features") or []:
+            rows.append(
+                {
+                    "group": (manifest_row.manifest or {}).get("run_id")
+                    or str(manifest_row.capture_id),
+                    "capture_group": str(manifest_row.capture_id),
+                    "label": label,
+                    "lab_application_label": (manifest_row.manifest or {}).get(
+                        "lab_application_label"
+                    ),
+                    "features": features,
+                }
+            )
+    record_event(
+        db,
+        action="dataset.exported",
+        resource_type="flow_dataset",
+        resource_id=None,
+        actor_user_id=user.id,
+        organization_id=user.organization_id,
+        metadata={"rows": len(rows)},
+    )
+    db.commit()
+    return {"rows": rows, "row_count": len(rows)}
 
 
 @router.get("/analyses/{analysis_id}", response_model=AnalysisResponse)
