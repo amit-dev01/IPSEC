@@ -94,9 +94,26 @@ def seeded(db):
     return {"a": make_org("orga"), "b": make_org("orgb")}
 
 
+class _StubStorage:
+    """In-memory storage stand-in for auth tests (no S3 in this suite)."""
+
+    def __init__(self):
+        self.objects = {}
+
+    def put_file(self, key, path):
+        self.objects[key] = path.read_bytes()
+
+    def stream(self, key):
+        yield self.objects[key]
+
+    def delete(self, key):
+        self.objects.pop(key, None)
+
+
 @pytest.fixture()
 def client(db, seeded):
     app = create_app(_settings())
+    app.state.storage = _StubStorage()
     app.dependency_overrides[get_db] = lambda: db
 
     # get_db is a generator dependency; override must yield too

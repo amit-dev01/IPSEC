@@ -20,6 +20,44 @@ capture upload, TShark parsing, evidence extraction, ML classification, assessme
 rules, reporting. Absent capabilities surface as explicit `unknown`/`unavailable`,
 never as fabricated findings or a "secure" result.
 
+## Capture ingestion
+
+`POST /api/v1/captures` (multipart, `captures:write`) streams the upload to a
+temp file in bounded chunks — computing SHA-256, enforcing
+`IPSEC_MAX_UPLOAD_BYTES` while reading, and detecting PCAP/PCAPNG from magic
+bytes (extension and client MIME type are ignored; the API never parses the
+capture). Objects are stored first under random tenant-prefixed keys
+(`tenants/{org}/captures/{id}/{random}` — the submitted filename is only a
+sanitized display name and keys are never exposed to clients), then the
+database row and a hash-chained `capture.uploaded` audit event commit together;
+a failed commit deletes the object, and a failed storage write leaves no row.
+Tenant-scoped `GET /api/v1/captures`, `GET /api/v1/captures/{id}`,
+`GET /api/v1/captures/{id}/download` (audited, streamed), and
+`DELETE /api/v1/captures/{id}` (object deleted, audited; tombstoned if storage
+deletion fails) are provided. Captures are never parsed in the API process.
+
+Storage is private S3-compatible storage behind an abstraction
+(`storage/base.py`, `storage/s3.py`); MinIO is the development backend
+(`docker compose up minio`, then create the `ipsec-captures` bucket, e.g.
+`mc mb local/ipsec-captures`). TLS is on by default
+(`IPSEC_S3_USE_TLS`); server-side encryption is requested only when
+`IPSEC_S3_SSE_ALGORITHM` (`AES256` or `aws:kms`) is configured — the system
+never claims encryption is enabled when it is not, and production refuses to
+start without TLS + SSE configured.
+
+### Reverse proxy (production guidance)
+Set the proxy body limit slightly above `IPSEC_MAX_UPLOAD_BYTES` so oversized
+uploads are rejected cheaply at the edge, and keep the application limit as the
+authoritative check (the proxy limit alone is not sufficient):
+
+```nginx
+client_max_body_size 513m;        # app limit (512 MiB default) + multipart overhead
+location /api/v1/captures {
+    proxy_request_buffering off;  # stream uploads; do not buffer whole files
+    proxy_pass http://ipsec-api;
+}
+```
+
 ## Authentication & authorization
 
 Argon2id password hashing (pwdlib), short-lived HS256 JWT access tokens
