@@ -20,6 +20,21 @@ capture upload, TShark parsing, evidence extraction, ML classification, assessme
 rules, reporting. Absent capabilities surface as explicit `unknown`/`unavailable`,
 never as fabricated findings or a "secure" result.
 
+## Persistence (PostgreSQL)
+
+Models live in `src/ipsec_analyzer/models/` (Organization/User, Capture, AnalysisRun,
+EvidenceRecord, Finding, AuditEvent); SQLAlchemy 2 + Psycopg 3, Alembic migrations in
+`migrations/versions/` — deployment must use migrations, never `metadata.create_all()`.
+PostgreSQL stores metadata only; PCAP bytes belong in object storage.
+
+```bash
+uv run alembic upgrade head     # apply migrations (IPSEC_DATABASE_URL)
+uv run alembic check            # verify models match the migrated schema
+# PostgreSQL-backed tests (skip automatically without the env var):
+IPSEC_TEST_DATABASE_URL=postgresql+psycopg://ipsec:change-me-local-only@localhost:5432/ipsec_test \
+  uv run pytest tests/test_persistence_pg.py tests/test_tenant_isolation.py
+```
+
 ## Local development
 
 Prerequisite: [`uv`](https://docs.astral.sh/uv/).
