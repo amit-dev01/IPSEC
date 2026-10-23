@@ -213,9 +213,10 @@ def test_list_detail_download_delete_and_cross_tenant(ctx, caplog):
     org_b, _ = ctx["b"]
     cap_id = _upload(ctx, org_a).json()["id"]
 
-    assert ctx["client"].get("/api/v1/captures", headers=_h(ctx, org_b)).json() == []
+    assert ctx["client"].get("/api/v1/captures", headers=_h(ctx, org_b)).json()["items"] == []
     own_list = ctx["client"].get("/api/v1/captures", headers=_h(ctx, org_a)).json()
-    assert [c["id"] for c in own_list] == [cap_id]
+    assert [c["id"] for c in own_list["items"]] == [cap_id]
+    assert own_list["total"] == 1
 
     dl = ctx["client"].get(f"/api/v1/captures/{cap_id}/download", headers=_h(ctx, org_a))
     assert dl.status_code == 200 and dl.content == PCAP

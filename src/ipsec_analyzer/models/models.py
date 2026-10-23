@@ -261,11 +261,11 @@ class AnalysisRun(Base):
     __tablename__ = "analysis_runs"
     __table_args__ = (
         CheckConstraint(
-            "risk_score IS NULL OR (risk_score >= 0 AND risk_score <= 1)",
+            "risk_score IS NULL OR (risk_score >= 0 AND risk_score <= 100)",
             name="ck_run_risk_score_range",
         ),
         CheckConstraint(
-            "security_score IS NULL OR (security_score >= 0 AND security_score <= 1)",
+            "security_score IS NULL OR (security_score >= 0 AND security_score <= 100)",
             name="ck_run_security_score_range",
         ),
         CheckConstraint(
@@ -405,6 +405,11 @@ class Finding(Base):
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     # List of EvidenceRecord UUIDs (as strings) backing this finding -> JSONB.
     evidence_refs: Mapped[list[Any] | None] = mapped_column(JSONBType, nullable=True)
+    actual_value: Mapped[Any] = mapped_column(JSONBType, nullable=True)
+    expected_value: Mapped[Any] = mapped_column(JSONBType, nullable=True)
+    policy_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Source references: rule documentation / profile sections (no external calls).
+    source_refs: Mapped[list[Any] | None] = mapped_column(JSONBType, nullable=True)
     recommendation: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[FindingStatus] = mapped_column(
         _enum(FindingStatus, "finding_status"), nullable=False, default=FindingStatus.OPEN

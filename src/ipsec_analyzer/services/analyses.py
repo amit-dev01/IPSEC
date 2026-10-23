@@ -80,7 +80,7 @@ def create_analysis(db: Session, user: User, capture: Capture, settings: Setting
         requester_id=user.id,
         status=AnalysisStatus.QUEUED,
         pipeline_version=settings.pipeline_version,
-        policy_version=settings.policy_version,
+        policy_version=settings.assessment_policy_version,
         model_version=None,  # no model runs at this pipeline stage
     )
     db.add(run)

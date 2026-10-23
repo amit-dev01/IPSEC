@@ -18,6 +18,7 @@ dependencies = [
     "pydantic>=2.10",
     "pydantic-settings>=2.7",
     "python-multipart>=0.0.20",
+    "reportlab>=4.2",
     "redis>=5.2",
     "scikit-learn>=1.6",
     "sqlalchemy>=2.0",
@@ -31,6 +32,8 @@ ipsec-ml = "ipsec_analyzer.ml.training:main"
 [dependency-groups]
 dev = [
     "httpx>=0.28",
+    "mypy>=1.14",
+    "pip-audit>=2.7",
     "pytest>=8.3",
     "ruff>=0.9",
 ]
@@ -49,3 +52,9 @@ target-version = "py311"
 select = ["E", "F", "I", "UP", "B", "S"]
 # S: bandit-style checks; tests may use assert (S101 handled via per-file ignore)
 per-file-ignores = { "tests/*" = ["S101"] }
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_ignores = false
+exclude = "migrations/"

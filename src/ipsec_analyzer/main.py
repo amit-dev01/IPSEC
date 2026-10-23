@@ -2,7 +2,8 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 
 from ipsec_analyzer.api.v1.router import api_router
 from ipsec_analyzer.core.config import Settings, get_settings
@@ -39,6 +40,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = resolved
     app.state.storage = S3Storage(resolved)  # lazy boto client; tests may override
     app.state.dispatcher = CeleryDispatcher().enqueue
+
+    @app.exception_handler(HTTPException)
+    def problem_details(request: Request, exc: HTTPException):  # noqa: ANN202
+        """RFC 9457-style Problem Details; `detail` retained for older clients."""
+        detail = exc.detail if isinstance(exc.detail, str) else "request_failed"
+        return JSONResponse(
+            status_code=exc.status_code,
+            headers=exc.headers,
+            content={
+                "type": "about:blank",
+                "title": detail,
+                "detail": detail,
+                "status": exc.status_code,
+                "code": detail,
+                "instance": str(request.url.path),
+            },
+        )
+
     app.state.login_rate_limiter = LoginRateLimiter(
         resolved.login_max_attempts, resolved.login_window_seconds
     )

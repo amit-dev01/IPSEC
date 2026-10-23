@@ -152,7 +152,7 @@ def test_check_constraint_score_range(db):
             requester_id=user.id,
             pipeline_version="0.1.0",
             policy_version="2026-01",
-            risk_score=1.5,
+            risk_score=150.0,  # scores are 0-100 since the assessment stage
         )
     )
     with pytest.raises(IntegrityError):
