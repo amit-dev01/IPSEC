@@ -1,5 +1,5 @@
 import type { FormEvent, ReactNode } from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ApiError, uploadCapture } from "@/api/client";
 import { MAX_UPLOAD_BYTES } from "@/lib/config";
@@ -33,6 +33,41 @@ export default function UploadModal({
   const [precheck, setPrecheck] = useState<string | null>(null);
   const [state, setState] = useState<UploadState>(initialState);
   const abortRef = useRef<AbortController | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+
+  // Focus trap: keep Tab cycling inside the dialog, Escape closes, and
+  // initial focus lands on the dialog heading region.
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (dialog === null) return;
+    const focusables = (): HTMLElement[] =>
+      [
+        ...dialog.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      ].filter((el) => !el.hasAttribute("disabled"));
+    focusables()[0]?.focus();
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = focusables();
+      if (items.length === 0) return;
+      const first = items[0]!;
+      const last = items[items.length - 1]!;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
   const oversized = file !== null && file.size > MAX_UPLOAD_BYTES;
 
   const onFileChosen = async (chosen: File | null): Promise<void> => {
@@ -106,7 +141,7 @@ export default function UploadModal({
       aria-labelledby="upload-heading"
       className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4"
     >
-      <div className="w-full max-w-lg rounded bg-surface-raised p-4 shadow">
+      <div ref={dialogRef} className="w-full max-w-lg rounded bg-surface-raised p-4 shadow">
         <div className="flex items-center justify-between">
           <h2 id="upload-heading" className="text-lg font-semibold">
             Upload Capture

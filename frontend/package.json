@@ -14,6 +14,8 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"*.{ts,json,html}\"",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:list": "playwright test --list",
     "api:export": "curl -s http://localhost:8000/openapi.json -o openapi.json && pnpm api:generate",
     "api:generate": "openapi-typescript openapi.json -o src/api/schema.d.ts"
   },
@@ -26,6 +28,7 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.1",
     "@tailwindcss/vite": "4.3.3",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",

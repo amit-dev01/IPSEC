@@ -93,3 +93,25 @@ body {
 .tnum {
   font-variant-numeric: tabular-nums;
 }
+
+/* Report print fallback (backend PDF remains authoritative). */
+@media print {
+  .print-hidden,
+  nav,
+  header {
+    display: none !important;
+  }
+  body {
+    background: #ffffff;
+    color: #000000;
+  }
+  .report-print {
+    font-size: 11pt;
+  }
+  .report-print table {
+    page-break-inside: auto;
+  }
+  .report-print tr {
+    page-break-inside: avoid;
+  }
+}

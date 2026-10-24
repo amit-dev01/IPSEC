@@ -48,18 +48,26 @@ const capturesFixture: TestCapture[] = [];
 const analysesByCapture = new Map<string, TestAnalysis[]>();
 const manifests = new Map<string, Record<string, unknown>>();
 const analysisPolls = new Map<string, number>();
+const detailOverrides = new Map<string, Record<string, unknown>>();
 let uploadSizeLimit = Number.MAX_SAFE_INTEGER;
+let liveCaptureEnabled = false;
 
 export function resetFixtureState(): void {
   capturesFixture.length = 0;
   analysesByCapture.clear();
   manifests.clear();
   analysisPolls.clear();
+  detailOverrides.clear();
   uploadSizeLimit = Number.MAX_SAFE_INTEGER;
+  liveCaptureEnabled = false;
 }
 
 export function setUploadSizeLimit(bytes: number): void {
   uploadSizeLimit = bytes;
+}
+
+export function setLiveCaptureEnabled(enabled: boolean): void {
+  liveCaptureEnabled = enabled;
 }
 
 export function seedCapture(capture: Partial<TestCapture> & { id: string }): TestCapture {
@@ -102,6 +110,10 @@ export function seedAnalysis(
   list.push(full);
   analysesByCapture.set(captureId, list);
   return full;
+}
+
+export function seedAnalysisDetail(analysisId: string, override: Record<string, unknown>): void {
+  detailOverrides.set(analysisId, override);
 }
 
 export function seedManifest(captureId: string, manifest: Record<string, unknown>): void {
@@ -254,8 +266,10 @@ export const handlers = [
       run.security_score = 80;
     }
     const succeeded = run.status === "succeeded";
+    const override = detailOverrides.get(run.id) ?? {};
     return HttpResponse.json({
       ...run,
+      ...override,
       packet_observed_facts: succeeded
         ? [
             {
@@ -308,8 +322,8 @@ export const handlers = [
             },
           ]
         : [],
-      findings: [],
-      evidence_gaps: [],
+      findings: (override["findings"] as unknown[]) ?? [],
+      evidence_gaps: (override["evidence_gaps"] as unknown[]) ?? [],
       report_url: null,
     });
   }),
@@ -323,7 +337,65 @@ export const handlers = [
     return HttpResponse.json(run);
   }),
 
-  http.get("*/api/v1/analyses/:id/report", () => HttpResponse.json({ report: "ok" })),
+  http.get("*/api/v1/analyses/:id/report", ({ request }) => {
+    const format = new URL(request.url).searchParams.get("format") ?? "json";
+    if (format === "pdf") {
+      return HttpResponse.text("%PDF-1.4 fake-fixture", {
+        headers: { "Content-Type": "application/pdf" },
+      });
+    }
+    return HttpResponse.json({
+      report_version: "1.0",
+      executive_summary: { assessment_status: "assessed" },
+    });
+  }),
+
+  http.get("*/api/v1/admin/audit-events", ({ request }) => {
+    const url = new URL(request.url);
+    const limit = Number(url.searchParams.get("limit") ?? 20);
+    const offset = Number(url.searchParams.get("offset") ?? 0);
+    const all = Array.from({ length: 45 }, (_, i) => ({
+      id: `evt-${i + 1}`,
+      timestamp: "2026-10-24T00:00:00Z",
+      actor: "admin@example.test",
+      action: i % 2 === 0 ? "capture.uploaded" : "analysis.created",
+      resource_type: "capture",
+      resource_id: `cap-${i + 1}`,
+      event_hash: `${String(i).padStart(4, "0")}${"a".repeat(60)}`,
+      previous_hash: i === 0 ? null : `${String(i - 1).padStart(4, "0")}${"a".repeat(60)}`,
+    }));
+    const action = url.searchParams.get("action");
+    const filtered = action ? all.filter((e) => e.action === action) : all;
+    return HttpResponse.json({
+      items: filtered.slice(offset, offset + limit),
+      total: filtered.length,
+      limit,
+      offset,
+    });
+  }),
+
+  http.get("*/api/v1/admin/live-capture/allowlist", () =>
+    liveCaptureEnabled
+      ? HttpResponse.json({
+          agents: [{ id: "agent-lab-1", label: "Lab agent 1" }],
+          interfaces: [{ id: "if-eth0", label: "eth0 (allowlisted)" }],
+          profiles: [{ id: "metadata-only", label: "Metadata only" }],
+          duration_options_seconds: [30, 60],
+          max_bytes_options: [10_000_000],
+        })
+      : problem(404, "live capture disabled"),
+  ),
+
+  http.post("*/api/v1/admin/live-capture/trigger", async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    if (typeof body["interface_id"] !== "string" || body["interface_id"] === "") {
+      return problem(422, "interface must be allowlisted");
+    }
+    return HttpResponse.json(
+      { capture_id: "cap-live-1", analysis_id: "run-live-1", status: "queued" },
+      { status: 202 },
+    );
+  }),
 
   http.get("*/api/v1/admin/exports/flow-dataset", () =>
     HttpResponse.text('{"deidentified":true}\n'),

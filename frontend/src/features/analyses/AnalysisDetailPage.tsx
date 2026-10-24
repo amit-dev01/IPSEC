@@ -22,10 +22,12 @@ import { assessmentLabel } from "@/lib/permissions";
 
 import { allEvidence, asSource, isUnknown } from "./evidence-lib";
 import type { Evidence } from "./evidence-lib";
+import AssessmentTab from "./AssessmentTab";
 import InspectorTab from "./InspectorTab";
 import TrafficTab from "./TrafficTab";
 
-type TabId = "overview" | "inspector" | "traffic" | "findings" | "evidence" | "report";
+type TabId =
+  "overview" | "assessment" | "inspector" | "traffic" | "findings" | "evidence" | "report";
 
 function PollStatus({ status }: { status: string }): ReactNode {
   if (status === "queued")
@@ -101,6 +103,7 @@ export default function AnalysisDetailPage(): ReactNode {
 
   const tabs: { id: TabId; label: string }[] = [
     { id: "overview", label: "Overview" },
+    { id: "assessment", label: "Security Assessment & Threat Matrix" },
     { id: "inspector", label: "Protocol & Security Inspector" },
     { id: "traffic", label: "AI Traffic Inference & Metadata" },
     { id: "findings", label: `Findings (${detail.findings.length})` },
@@ -214,6 +217,17 @@ export default function AnalysisDetailPage(): ReactNode {
         </div>
       )}
 
+      {tab === "assessment" && (
+        <div
+          role="tabpanel"
+          id="panel-assessment"
+          aria-labelledby="tab-assessment"
+          className="py-4"
+        >
+          <AssessmentTab detail={detail} />
+        </div>
+      )}
+
       {tab === "inspector" && (
         <div role="tabpanel" id="panel-inspector" aria-labelledby="tab-inspector" className="py-4">
           <InspectorTab detail={detail} />
@@ -323,8 +337,13 @@ export default function AnalysisDetailPage(): ReactNode {
             Download the versioned JSON or HTML report. Reports are fetched as authenticated blobs —
             tokens are never placed in URLs.
           </p>
+          <p className="mt-3">
+            <Link to={`/analyses/${analysisId}/report`} className="underline font-medium">
+              Open Report Center (Executive / Technical views)
+            </Link>
+          </p>
           <div className="mt-3 flex gap-2">
-            {(["json", "html"] as const).map((format) => (
+            {(["json", "pdf"] as const).map((format) => (
               <button
                 key={format}
                 type="button"
