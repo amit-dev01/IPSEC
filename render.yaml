@@ -65,7 +65,7 @@ services:
     env: docker
     plan: free
     region: singapore
-    dockerfilePath: ./frontend/Dockerfile
+    dockerfilePath: ./Dockerfile
     dockerContext: ./frontend
     healthCheckPath: /
     envVars:
