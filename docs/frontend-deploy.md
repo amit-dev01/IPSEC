@@ -17,7 +17,7 @@ only ever talks to one origin (no CORS, tokens never in URLs).
    - **Name:** `ipsec-web`
    - **Region:** Singapore (same as the backend)
    - **Language / Runtime:** Docker
-   - **Dockerfile Path:** `./Dockerfile`  (relative to the build context below)
+   - **Dockerfile Path:** `./frontend/Dockerfile`  (per Render's UI, this path is relative to the **repo root**)
    - **Docker Build Context Directory:** `./frontend`
    - **Instance Type:** Free
    - **Health Check Path:** `/`
