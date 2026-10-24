@@ -59,7 +59,12 @@ server {
     location /api/v1/ {
         proxy_pass ${BACKEND_ORIGIN};
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        # TLS upstreams (e.g. Render) require SNI + the upstream Host for
+        # routing; $proxy_host derives both from BACKEND_ORIGIN, so this
+        # also stays correct for the plain-HTTP Compose backend (api:8000).
+        proxy_ssl_server_name on;
+        proxy_ssl_name $proxy_host;
+        proxy_set_header Host $proxy_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
