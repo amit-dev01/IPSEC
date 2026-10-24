@@ -16,6 +16,15 @@ import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
+from ipsec_analyzer.core.config import Settings
+
+# Hermetic tests: never load a developer's local .env into Settings during
+# tests. Real credentials in .env (production JWT key, SSE, addressing style)
+# otherwise leak into unit tests that assert default/development behaviour.
+# Process environment variables (e.g. IPSEC_TEST_DATABASE_URL set by the pg
+# fixture below) are still honoured — only the file source is disabled.
+Settings.model_config = {**Settings.model_config, "env_file": None}
+
 _TABLES = "audit_events, findings, evidence_records, analysis_runs, captures, users, organizations"
 
 
