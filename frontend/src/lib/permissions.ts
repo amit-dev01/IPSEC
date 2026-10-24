@@ -42,3 +42,16 @@ const CAPABILITIES: Record<Role, ReadonlySet<Action>> = {
 export function can(role: Role | null, action: Action): boolean {
   return role !== null && CAPABILITIES[role].has(action);
 }
+
+/** Honest assessment label from documented score nullability. */
+export function assessmentLabel(run: {
+  status: string;
+  security_score: number | null;
+  risk_score: number | null;
+}): string {
+  if (run.status !== "succeeded") return `Not assessed (${run.status})`;
+  if (run.security_score !== null) return "Assessed from observable evidence";
+  if (run.risk_score !== null)
+    return "Partially assessed — security score not computable from observable evidence";
+  return "Insufficient evidence — no score claimed";
+}

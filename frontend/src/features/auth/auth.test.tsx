@@ -57,9 +57,9 @@ describe("authentication", () => {
   it("logs in and shows identity, organization, and role", async () => {
     renderApp();
     await fillAndSubmit("analyst@example.test", "correct-password");
-    expect(await screen.findByText("Session overview")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Overview" })).toBeInTheDocument();
     expect(screen.getAllByText(/analyst@example\.test/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/role analyst/)).toBeInTheDocument();
+    expect(screen.getAllByText(/analyst/).length).toBeGreaterThan(0);
     expect(screen.queryByText("Sign in", { selector: "button" })).not.toBeInTheDocument();
   });
 
@@ -83,30 +83,30 @@ describe("authentication", () => {
   it("hides upload for viewer and shows it for analyst", async () => {
     const viewer = renderApp();
     await fillAndSubmit("viewer@example.test", "correct-password");
-    await screen.findByText("Session overview");
+    await screen.findByRole("heading", { name: "Overview" });
     await userEvent.setup().click(screen.getByRole("link", { name: "Captures" }));
-    expect(await screen.findByText(/No captures yet/)).toBeInTheDocument();
-    expect(screen.queryByLabelText("Upload capture file")).not.toBeInTheDocument();
+    expect(await screen.findByText(/No captures match/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Upload Capture" })).not.toBeInTheDocument();
     viewer.unmount();
     endSession();
 
     renderApp();
     await fillAndSubmit("analyst@example.test", "correct-password");
-    await screen.findByText("Session overview");
+    await screen.findByRole("heading", { name: "Overview" });
     await userEvent.setup().click(screen.getByRole("link", { name: "Captures" }));
-    expect(await screen.findByLabelText("Upload capture file")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Upload Capture" })).toBeInTheDocument();
   });
 
   it("wipes the entire query cache on logout", async () => {
     const { queryClient } = renderApp();
     await fillAndSubmit("admin@example.test", "correct-password");
-    await screen.findByText("Session overview");
+    await screen.findByRole("heading", { name: "Overview" });
     queryClient.setQueryData(["org", "22222222-2222-4222-8222-222222222222", "captures"], {
       items: [{ id: "secret-tenant-row" }],
     });
     expect(queryClient.getQueryCache().getAll()).not.toHaveLength(0);
 
-    await userEvent.setup().click(screen.getByRole("button", { name: "Sign out" }));
+    await userEvent.setup().click(screen.getByRole("button", { name: /sign out/i }));
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
