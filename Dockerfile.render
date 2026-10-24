@@ -15,7 +15,7 @@ COPY src ./src
 COPY alembic.ini ./
 COPY migrations ./migrations
 COPY scripts/render_start.sh ./scripts/render_start.sh
-ENV PATH="/app/.venv/bin:$PATH"
+ENV PATH="/app/.venv/bin:$PATH" PYTHONPATH="/app/src"
 USER app
 # No Render "Docker Command" needed: this CMD does migrations, worker, API.
 CMD ["sh", "scripts/render_start.sh"]
