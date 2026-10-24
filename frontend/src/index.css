@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens — cybersecurity analyst workbench.
+ * Light + high-contrast dark (slate) themes via [data-theme="dark"].
+ * Severity and provenance tokens ALWAYS pair color with text/icon in
+ * components (see components/badges.tsx); color is never the only signal.
+ */
+:root {
+  --surface: #f8fafc;
+  --surface-raised: #ffffff;
+  --surface-sunken: #eef2f7;
+  --ink: #0f172a;
+  --ink-muted: #475569;
+  --line: #cbd5e1;
+  --accent: #1d4ed8;
+  --accent-ink: #ffffff;
+
+  --sev-critical: #991b1b;
+  --sev-high: #c2410c;
+  --sev-medium: #a16207;
+  --sev-low: #0369a1;
+  --sev-info: #475569;
+
+  --prov-observed: #166534;
+  --prov-manifest: #7c2d12;
+  --prov-supplied: #9a3412;
+  --prov-inferred: #6d28d9;
+  --prov-unknown: #525252;
+}
+
+[data-theme="dark"] {
+  --surface: #020617;
+  --surface-raised: #0f172a;
+  --surface-sunken: #1e293b;
+  --ink: #f1f5f9;
+  --ink-muted: #94a3b8;
+  --line: #334155;
+  --accent: #60a5fa;
+  --accent-ink: #020617;
+
+  --sev-critical: #fca5a5;
+  --sev-high: #fdba74;
+  --sev-medium: #fde68a;
+  --sev-low: #7dd3fc;
+  --sev-info: #cbd5e1;
+
+  --prov-observed: #86efac;
+  --prov-manifest: #fdba74;
+  --prov-supplied: #fed7aa;
+  --prov-inferred: #c4b5fd;
+  --prov-unknown: #d4d4d4;
+}
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-sev-critical: var(--sev-critical);
+  --color-sev-high: var(--sev-high);
+  --color-sev-medium: var(--sev-medium);
+  --color-sev-low: var(--sev-low);
+  --color-sev-info: var(--sev-info);
+  --color-prov-observed: var(--prov-observed);
+  --color-prov-manifest: var(--prov-manifest);
+  --color-prov-supplied: var(--prov-supplied);
+  --color-prov-inferred: var(--prov-inferred);
+  --color-prov-unknown: var(--prov-unknown);
+  --font-sans: ui-sans-system, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+body {
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+/** Monospace utility for SPIs, SHA-256 hashes, frame numbers, IP endpoints. */
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  word-break: break-all;
+}
+
+/** Tabular numerals for scores, byte counts, durations, probabilities. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
