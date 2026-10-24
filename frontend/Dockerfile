@@ -16,9 +16,13 @@ RUN pnpm build
 
 # ---- Runtime stage (unprivileged, no Node) ----
 FROM nginxinc/nginx-unprivileged:1.29.4-alpine3.22 AS runtime
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Defaults suit Docker Compose; hosted platforms override per environment.
+ENV PORT=8080 \
+    BACKEND_ORIGIN=http://api:8000 \
+    NGINX_ENVSUBST_FILTER="PORT|BACKEND_ORIGIN"
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 8080
 USER nginx
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
-  CMD wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1
+  CMD wget -q -O /dev/null http://127.0.0.1:${PORT}/ || exit 1

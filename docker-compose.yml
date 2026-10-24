@@ -57,6 +57,9 @@ services:
     depends_on: [migrate, redis, minio]
   frontend:
     build: { context: ./frontend, dockerfile: Dockerfile }
+    environment:
+      PORT: "8080"
+      BACKEND_ORIGIN: http://api:8000
     ports: ["8080:8080"]
     depends_on: [api]
     read_only: true

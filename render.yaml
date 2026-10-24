@@ -58,3 +58,16 @@ services:
     healthCheckPath: /api/v1/health/live
     envVars:
       - fromGroup: ipsec-env
+
+  # Frontend SPA (nginx) — proxies /api/v1/ to the backend service above.
+  - type: web
+    name: ipsec-web
+    env: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    healthCheckPath: /
+    envVars:
+      - key: BACKEND_ORIGIN
+        value: https://ipsec-app.onrender.com
