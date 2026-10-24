@@ -1,0 +1,59 @@
+# Render Blueprint — no-VM demo deployment (free stack).
+#
+# Services provided by other free accounts (see docs/free-deploy.md):
+#   PostgreSQL -> Neon        IPSEC_DATABASE_URL
+#   Redis      -> Upstash     IPSEC_REDIS_URL
+#   Storage    -> Cloudflare R2 (S3-compatible)  IPSEC_S3_*
+#
+# Honest cost note: the API can run on Render's free web tier (sleeps when
+# idle). Render background workers are NOT free — this worker uses the
+# cheapest `starter` plan. Everything else above has a standing free tier.
+# No VM/VPS is used anywhere in this deployment.
+
+envVarGroups:
+  - name: ipsec-env
+    envVars:
+      - key: IPSEC_ENVIRONMENT
+        value: production
+      - key: IPSEC_DATABASE_URL
+        sync: false # from Neon: postgresql+psycopg://... (see guide)
+      - key: IPSEC_REDIS_URL
+        sync: false # from Upstash: rediss://...
+      - key: IPSEC_S3_ENDPOINT_URL
+        sync: false # from Cloudflare R2: https://<account-id>.r2.cloudflarestorage.com
+      - key: IPSEC_S3_BUCKET
+        value: ipsec-captures
+      - key: IPSEC_S3_ACCESS_KEY
+        sync: false # R2 API token Access Key ID
+      - key: IPSEC_S3_SECRET_KEY
+        sync: false # R2 API token Secret Access Key
+      - key: IPSEC_S3_REGION
+        value: auto
+      - key: IPSEC_S3_SSE_ALGORITHM
+        value: AES256
+      - key: IPSEC_JWT_SIGNING_KEY
+        generateValue: true
+
+services:
+  - type: web
+    name: ipsec-api
+    env: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile.api
+    dockerContext: .
+    # Migrate once at boot, then serve. Render injects $PORT.
+    dockerCommand: sh -c "alembic upgrade head && exec uvicorn ipsec_analyzer.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /api/v1/health/live
+    envVars:
+      - fromGroup: ipsec-env
+
+  - type: worker
+    name: ipsec-worker
+    env: docker
+    plan: starter # Render has no free background-worker tier
+    region: singapore
+    dockerfilePath: ./Dockerfile.worker
+    dockerContext: .
+    envVars:
+      - fromGroup: ipsec-env
