@@ -383,7 +383,7 @@ export function downloadCapture(captureId: string, options: RequestOptions = {})
 }
 export function downloadReport(
   analysisId: string,
-  format: "json" | "html",
+  format: "json" | "pdf",
   options: RequestOptions = {},
 ): Promise<void> {
   return downloadFile(
@@ -392,6 +392,66 @@ export function downloadReport(
     options,
   );
 }
+/** Fetch a file as Blob via authenticated fetch (token never in URL). */
+export async function fetchBlob(path: string, options: RequestOptions = {}): Promise<Blob> {
+  const token = getAccessToken();
+  const headers: Record<string, string> = {};
+  if (token !== null) headers["Authorization"] = `Bearer ${token}`;
+  const url = path.startsWith("http") ? path : `${apiBaseUrl}${path}`;
+  const response = await fetch(url, {
+    method: "GET",
+    headers,
+    signal: combinedSignal(options.signal, options.timeoutMs ?? 10 * 60_000),
+  });
+  if (!response.ok) {
+    const body = await readJsonBody(response);
+    const error = parseProblem(body, response.status, response.headers.get("Retry-After"));
+    if (response.status === 401) notifyUnauthorized();
+    throw error;
+  }
+  return response.blob();
+}
+
+/** Authenticated JSON GET for optional admin capabilities. Callers must
+ * feature-detect: a 404 means the backend does not expose the capability. */
+export async function fetchJson(path: string, options: RequestOptions = {}): Promise<unknown> {
+  const blob = await fetchBlob(path, options);
+  return JSON.parse(await blob.text()) as unknown;
+}
+
+export async function postJson(
+  path: string,
+  body: unknown,
+  options: RequestOptions = {},
+): Promise<unknown> {
+  const token = getAccessToken();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token !== null) headers["Authorization"] = `Bearer ${token}`;
+  const url = path.startsWith("http") ? path : `${apiBaseUrl}${path}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+    signal: combinedSignal(options.signal, options.timeoutMs ?? 60_000),
+  });
+  if (!response.ok) {
+    const parsed = await readJsonBody(response);
+    const error = parseProblem(parsed, response.status, response.headers.get("Retry-After"));
+    if (response.status === 401) notifyUnauthorized();
+    throw error;
+  }
+  return response.status === 204 ? null : ((await readJsonBody(response)) as unknown);
+}
+
+/** Authoritative structured report document (GET .../report?format=json). */
+export async function fetchReportJson(
+  analysisId: string,
+  options: RequestOptions = {},
+): Promise<Record<string, unknown>> {
+  const blob = await fetchBlob(`/api/v1/analyses/${analysisId}/report?format=json`, options);
+  return JSON.parse(await blob.text()) as Record<string, unknown>;
+}
+
 export function exportDataset(options: RequestOptions = {}): Promise<void> {
   return downloadFile("/api/v1/admin/exports/flow-dataset", "flow-dataset.json", options);
 }

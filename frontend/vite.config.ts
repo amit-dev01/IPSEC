@@ -7,6 +7,11 @@ export default defineConfig({
   resolve: {
     alias: { "@": new URL("./src", import.meta.url).pathname },
   },
+  preview: {
+    proxy: {
+      "/api": { target: "http://localhost:8000", changeOrigin: true },
+    },
+  },
   server: {
     proxy: {
       // Same-origin topology: browser only calls /api/v1, Vite proxies to

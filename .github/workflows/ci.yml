@@ -24,3 +24,40 @@ jobs:
         run: |
           docker build -f Dockerfile.api .
           docker build -f Dockerfile.worker .
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Lockfile integrity (frozen install)
+        run: pnpm install --frozen-lockfile
+      - name: Dependency audit
+        run: pnpm audit --audit-level=high
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm format:check
+      - name: OpenAPI schema drift check
+        run: |
+          pnpm api:generate
+          pnpm exec prettier --write src/api/schema.d.ts
+          git diff --exit-code -- src/api/schema.d.ts
+      - run: pnpm test
+      - run: pnpm build
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: Playwright E2E (mock API)
+        run: pnpm test:e2e
+      - name: Build frontend container
+        working-directory: .
+        run: docker build -f frontend/Dockerfile frontend
