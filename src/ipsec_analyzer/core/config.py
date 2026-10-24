@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     s3_access_key: str | None = None
     s3_secret_key: str | None = None
     s3_region: str = "us-east-1"
+    # "auto" (AWS/MinIO default), "path" (required by Neon Object Storage),
+    # or "virtual". Only affects request addressing, never authorization.
+    s3_addressing_style: str = Field(default="auto", pattern="^(auto|path|virtual)$")
     # TLS is on by default; local MinIO over http must opt out explicitly in dev.
     s3_use_tls: bool = True
     s3_verify_tls: bool = True
