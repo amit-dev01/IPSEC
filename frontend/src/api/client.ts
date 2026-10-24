@@ -6,6 +6,8 @@ import { getAccessToken, notifyUnauthorized } from "./token";
 export type Schemas = components["schemas"];
 export type CaptureResponse = Schemas["CaptureResponse"];
 export type AnalysisResponse = Schemas["AnalysisResponse"];
+export type AnalysisDetail = Schemas["AnalysisDetailResponse"];
+export type EvidenceResponse = Schemas["EvidenceResponse"];
 export type TokenResponse = Schemas["TokenResponse"];
 export type MeResponse = Schemas["MeResponse"];
 
@@ -37,6 +39,22 @@ export class ApiError extends Error {
     this.detail = init.detail;
     this.fields = init.fields ?? {};
     this.retryAfterSeconds = init.retryAfterSeconds ?? null;
+  }
+
+  /** Safe, user-displayable summary (never a stack trace or local path). */
+  userMessage(): string {
+    if (this.status === 401) return "Your session has expired. Please sign in again.";
+    if (this.status === 403) return "You do not have permission for this action.";
+    if (this.status === 404) return "The requested record was not found.";
+    if (this.status === 413) return "The file exceeds the server's maximum upload size.";
+    if (this.status === 429) {
+      return this.retryAfterSeconds !== null
+        ? `Too many attempts. Retry after ${this.retryAfterSeconds} seconds.`
+        : "Too many attempts. Please wait and retry.";
+    }
+    if (this.status === 422) return this.detail || "The submitted data was rejected (422).";
+    if (this.status === 0) return "Network error — the backend could not be reached.";
+    return this.detail || this.title || `Request failed (${this.status})`;
   }
 }
 
@@ -259,6 +277,86 @@ export async function getAnalysis(
   return data;
 }
 
+export async function listCaptureAnalyses(
+  captureId: string,
+  params: { limit?: number; offset?: number; status?: string } = {},
+  options: RequestOptions = {},
+): Promise<Schemas["AnalysisPage"]> {
+  const { data, error } = await baseClient.GET("/api/v1/captures/{capture_id}/analyses", {
+    params: { path: { capture_id: captureId }, query: params },
+    ...opts(options),
+  });
+  if (data === undefined)
+    throw (
+      error ??
+      new ApiError({
+        status: 0,
+        code: null,
+        title: "Network error",
+        detail: "No response from server.",
+      })
+    );
+  return data;
+}
+
+export async function getManifest(
+  captureId: string,
+  options: RequestOptions = {},
+): Promise<Schemas["ManifestResponse"]> {
+  const { data, error } = await baseClient.GET("/api/v1/captures/{capture_id}/manifest", {
+    params: { path: { capture_id: captureId } },
+    ...opts(options),
+  });
+  if (data === undefined)
+    throw (
+      error ??
+      new ApiError({
+        status: 0,
+        code: null,
+        title: "Network error",
+        detail: "No response from server.",
+      })
+    );
+  return data;
+}
+
+export async function attachManifest(
+  captureId: string,
+  manifest: Schemas["LabManifestV1"],
+  options: RequestOptions = {},
+): Promise<Schemas["ManifestResponse"]> {
+  const { data, error } = await baseClient.POST("/api/v1/captures/{capture_id}/manifest", {
+    params: { path: { capture_id: captureId } },
+    body: manifest,
+    ...opts(options),
+  });
+  if (data === undefined)
+    throw (
+      error ??
+      new ApiError({
+        status: 0,
+        code: null,
+        title: "Network error",
+        detail: "No response from server.",
+      })
+    );
+  return data;
+}
+
+/** Backend readiness (unauthenticated). Resolves false on any failure. */
+export async function fetchReadiness(): Promise<boolean> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/v1/health/ready`, {
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!response.ok) return false;
+    const body = (await response.json()) as { status?: unknown };
+    return body.status === "ready";
+  } catch {
+    return false;
+  }
+}
+
 export async function retryAnalysis(
   analysisId: string,
   options: RequestOptions = {},
@@ -278,6 +376,24 @@ export async function retryAnalysis(
       })
     );
   return data;
+}
+
+export function downloadCapture(captureId: string, options: RequestOptions = {}): Promise<void> {
+  return downloadFile(`/api/v1/captures/${captureId}/download`, "capture.pcap", options);
+}
+export function downloadReport(
+  analysisId: string,
+  format: "json" | "html",
+  options: RequestOptions = {},
+): Promise<void> {
+  return downloadFile(
+    `/api/v1/analyses/${analysisId}/report?format=${format}`,
+    `report.${format}`,
+    options,
+  );
+}
+export function exportDataset(options: RequestOptions = {}): Promise<void> {
+  return downloadFile("/api/v1/admin/exports/flow-dataset", "flow-dataset.json", options);
 }
 
 // ---- Multipart upload via XHR (fetch has no upload progress) ----

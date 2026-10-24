@@ -13,7 +13,123 @@ function roleForEmail(email: string): "admin" | "analyst" | "viewer" {
   return "viewer";
 }
 
+export const ORG_ID = "22222222-2222-4222-8222-222222222222";
+
+export interface TestCapture {
+  id: string;
+  organization_id: string;
+  display_name: string;
+  sha256: string;
+  size_bytes: number;
+  format: string;
+  state: string;
+  uploaded_at: string;
+}
+
+export interface TestAnalysis {
+  id: string;
+  organization_id: string;
+  capture_id: string;
+  status: string;
+  pipeline_version: string;
+  model_version: string | null;
+  policy_version: string;
+  attempts: number;
+  dispatch_attempts: number;
+  error_code: string | null;
+  risk_score: number | null;
+  security_score: number | null;
+  queued_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+const capturesFixture: TestCapture[] = [];
+const analysesByCapture = new Map<string, TestAnalysis[]>();
+const manifests = new Map<string, Record<string, unknown>>();
+const analysisPolls = new Map<string, number>();
+let uploadSizeLimit = Number.MAX_SAFE_INTEGER;
+
+export function resetFixtureState(): void {
+  capturesFixture.length = 0;
+  analysesByCapture.clear();
+  manifests.clear();
+  analysisPolls.clear();
+  uploadSizeLimit = Number.MAX_SAFE_INTEGER;
+}
+
+export function setUploadSizeLimit(bytes: number): void {
+  uploadSizeLimit = bytes;
+}
+
+export function seedCapture(capture: Partial<TestCapture> & { id: string }): TestCapture {
+  const full: TestCapture = {
+    organization_id: ORG_ID,
+    display_name: "lab.pcap",
+    sha256: "a".repeat(64),
+    size_bytes: 128,
+    format: "pcap",
+    state: "available",
+    uploaded_at: "2026-10-24T00:00:00Z",
+    ...capture,
+  };
+  capturesFixture.push(full);
+  return full;
+}
+
+export function seedAnalysis(
+  captureId: string,
+  analysis: Partial<TestAnalysis> & { id: string },
+): TestAnalysis {
+  const full: TestAnalysis = {
+    organization_id: ORG_ID,
+    capture_id: captureId,
+    status: "queued",
+    pipeline_version: "tshark-parse-0.2",
+    model_version: null,
+    policy_version: "default-2026.1",
+    attempts: 0,
+    dispatch_attempts: 1,
+    error_code: null,
+    risk_score: null,
+    security_score: null,
+    queued_at: "2026-10-24T00:00:00Z",
+    started_at: null,
+    finished_at: null,
+    ...analysis,
+  };
+  const list = analysesByCapture.get(captureId) ?? [];
+  list.push(full);
+  analysesByCapture.set(captureId, list);
+  return full;
+}
+
+export function seedManifest(captureId: string, manifest: Record<string, unknown>): void {
+  manifests.set(captureId, manifest);
+}
+
+function findAnalysis(id: string): TestAnalysis | null {
+  for (const list of analysesByCapture.values()) {
+    const found = list.find((a) => a.id === id);
+    if (found) return found;
+  }
+  return null;
+}
+
+function manifestResponse(captureId: string, manifest: Record<string, unknown>): Response {
+  return HttpResponse.json({
+    capture_id: captureId,
+    source: "lab_manifest",
+    schema_version: "1.0",
+    uploaded_by: null,
+    created_at: "2026-10-24T00:00:00Z",
+    manifest,
+  });
+}
+
 export const handlers = [
+  http.get("*/api/v1/health/ready", () => HttpResponse.json({ status: "ready" })),
+
   http.post("/api/v1/auth/login", async ({ request }) => {
     const body = (await request.json()) as { email: string; password: string };
     if (body.email.startsWith("rate@")) {
@@ -37,28 +153,49 @@ export const handlers = [
     }
     return HttpResponse.json({
       id: "11111111-1111-4111-8111-111111111111",
-      organization_id: "22222222-2222-4222-8222-222222222222",
+      organization_id: ORG_ID,
       email: `${role}@example.test`,
       role,
     });
   }),
 
-  http.get("/api/v1/captures", () =>
-    HttpResponse.json({ items: [], total: 0, limit: 50, offset: 0 }),
-  ),
+  http.get("/api/v1/captures", ({ request }) => {
+    const url = new URL(request.url);
+    const state = url.searchParams.get("state");
+    const limit = Number(url.searchParams.get("limit") ?? 50);
+    const offset = Number(url.searchParams.get("offset") ?? 0);
+    const filtered = state ? capturesFixture.filter((c) => c.state === state) : capturesFixture;
+    return HttpResponse.json({
+      items: filtered.slice(offset, offset + limit),
+      total: filtered.length,
+      limit,
+      offset,
+    });
+  }),
+
+  http.post("/api/v1/captures", async ({ request }) => {
+    const form = await request.formData();
+    const file = form.get("file");
+    const size = file instanceof File ? file.size : 0;
+    if (size > uploadSizeLimit) return problem(413, "capture exceeds maximum size");
+    const capture = seedCapture({
+      id: `capture-${Math.random().toString(36).slice(2, 8)}`,
+      display_name: file instanceof File ? file.name : "upload.pcap",
+      size_bytes: size,
+    });
+    return HttpResponse.json(capture, { status: 201 });
+  }),
 
   http.get("/api/v1/captures/:captureId", ({ params }) => {
-    if (params["captureId"] === "missing") return problem(404, "capture_not_found");
-    return HttpResponse.json({
-      id: params["captureId"],
-      organization_id: "22222222-2222-4222-8222-222222222222",
-      display_name: "lab.pcap",
-      sha256: "a".repeat(64),
-      size_bytes: 128,
-      format: "pcap",
-      state: "uploaded",
-      uploaded_at: "2026-10-24T00:00:00Z",
-    });
+    const found = capturesFixture.find((c) => c.id === params["captureId"]);
+    if (!found) return problem(404, "capture_not_found");
+    return HttpResponse.json(found);
+  }),
+
+  http.delete("/api/v1/captures/:captureId", ({ params }) => {
+    const idx = capturesFixture.findIndex((c) => c.id === params["captureId"]);
+    if (idx >= 0) capturesFixture.splice(idx, 1);
+    return new HttpResponse(null, { status: 204 });
   }),
 
   http.get("/api/v1/captures/:captureId/download", () =>
@@ -70,26 +207,125 @@ export const handlers = [
     }),
   ),
 
-  http.post("/api/v1/captures/:captureId/analyses", ({ params }) =>
-    HttpResponse.json(
-      {
-        id: "33333333-3333-4333-8333-333333333333",
-        organization_id: "22222222-2222-4222-8222-222222222222",
-        capture_id: params["captureId"],
-        status: "queued",
-        pipeline_version: "tshark-parse-0.2",
-        model_version: null,
-        policy_version: "default-2026.1",
-        attempts: 0,
-        dispatch_attempts: 1,
-        error_code: null,
-        risk_score: null,
-        security_score: null,
-        queued_at: "2026-10-24T00:00:00Z",
-        started_at: null,
-        finished_at: null,
-      },
-      { status: 202 },
-    ),
+  http.get("*/api/v1/captures/:id/analyses", ({ params, request }) => {
+    const url = new URL(request.url);
+    const statusFilter = url.searchParams.get("status");
+    let items = analysesByCapture.get(String(params.id)) ?? [];
+    if (statusFilter) items = items.filter((a) => a.status === statusFilter);
+    return HttpResponse.json({ items, total: items.length, limit: 50, offset: 0 });
+  }),
+
+  http.post("*/api/v1/captures/:id/analyses", ({ params }) => {
+    const run = seedAnalysis(String(params.id), {
+      id: `analysis-${Math.random().toString(36).slice(2, 8)}`,
+    });
+    return HttpResponse.json(run, { status: 202 });
+  }),
+
+  http.get("*/api/v1/captures/:id/manifest", ({ params }) => {
+    const found = manifests.get(String(params.id));
+    if (!found) return problem(404, "manifest not found");
+    return manifestResponse(String(params.id), found);
+  }),
+
+  http.post("*/api/v1/captures/:id/manifest", async ({ params, request }) => {
+    const manifest = (await request.json()) as Record<string, unknown>;
+    const serialized = JSON.stringify(manifest).toLowerCase();
+    if (
+      serialized.includes('"psk"') ||
+      serialized.includes("private_key") ||
+      serialized.includes('"secret"')
+    ) {
+      return problem(422, "manifest contains secret-bearing key");
+    }
+    manifests.set(String(params.id), manifest);
+    return manifestResponse(String(params.id), manifest);
+  }),
+
+  http.get("*/api/v1/analyses/:id", ({ params }) => {
+    const run = findAnalysis(String(params.id));
+    if (!run) return problem(404, "analysis not found");
+    const polls = (analysisPolls.get(run.id) ?? 0) + 1;
+    analysisPolls.set(run.id, polls);
+    if (run.status === "queued" && polls >= 2) run.status = "running";
+    if (run.status === "running" && polls >= 3) {
+      run.status = "succeeded";
+      run.risk_score = 20;
+      run.security_score = 80;
+    }
+    const succeeded = run.status === "succeeded";
+    return HttpResponse.json({
+      ...run,
+      packet_observed_facts: succeeded
+        ? [
+            {
+              id: "ev-1",
+              fact_name: "ike.version",
+              fact_value: 2,
+              source: "packet_observed",
+              visibility: "visible",
+              confidence: 1,
+              quality: 1,
+              packet_refs: [{ frame: 1 }],
+              limitation: null,
+            },
+          ]
+        : [],
+      supplied_facts: [],
+      model_inferred_facts: succeeded
+        ? [
+            {
+              id: "ev-3",
+              fact_name: "ml.traffic_category",
+              fact_value: {
+                status: "available",
+                predicted_category: "web",
+                confidence: 0.87,
+                model_version: "traffic-baseline/1",
+                limitations: ["Metadata only; not payload inspection."],
+              },
+              source: "model_inferred",
+              visibility: "derived",
+              confidence: 0.87,
+              quality: null,
+              packet_refs: [],
+              limitation: null,
+            },
+          ]
+        : [],
+      unknown_facts: succeeded
+        ? [
+            {
+              id: "ev-2",
+              fact_name: "esp.encryption_algorithm",
+              fact_value: null,
+              source: "unknown",
+              visibility: "encrypted_or_unavailable",
+              confidence: null,
+              quality: null,
+              packet_refs: [],
+              limitation: "ESP payloads are encrypted.",
+            },
+          ]
+        : [],
+      findings: [],
+      evidence_gaps: [],
+      report_url: null,
+    });
+  }),
+
+  http.post("*/api/v1/analyses/:id/retry", ({ params }) => {
+    const run = findAnalysis(String(params.id));
+    if (!run) return problem(404, "analysis not found");
+    analysisPolls.set(run.id, 0);
+    run.status = "queued";
+    run.error_code = null;
+    return HttpResponse.json(run);
+  }),
+
+  http.get("*/api/v1/analyses/:id/report", () => HttpResponse.json({ report: "ok" })),
+
+  http.get("*/api/v1/admin/exports/flow-dataset", () =>
+    HttpResponse.text('{"deidentified":true}\n'),
   ),
 ];

@@ -1,138 +1,161 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ChangeEvent, ReactNode } from "react";
-import { useRef, useState } from "react";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ReactNode } from "react";
+import { useState } from "react";
+import { Link } from "react-router";
 
 import {
   ApiError,
-  createAnalysis,
   deleteCapture,
-  downloadFile,
+  downloadCapture,
+  listCaptureAnalyses,
   listCaptures,
-  uploadCapture,
 } from "@/api/client";
+import { useToast } from "@/app/toast-context";
+import { UnknownValue } from "@/components/epistemic";
+import { Skeleton, EmptyState } from "@/components/ui";
 import { useAuth } from "@/features/auth/auth-context";
 import { RequireAction } from "@/features/auth/guards";
 import { formatBytes, formatTimestamp } from "@/lib/format";
-import { sniffCaptureKind } from "@/lib/files";
+
+import UploadModal from "./UploadModal";
+
+const PAGE_SIZE = 20;
 
 export default function CapturesPage(): ReactNode {
-  const { organizationId, role } = useAuth();
+  const { organizationId } = useAuth();
+  const toast = useToast();
   const queryClient = useQueryClient();
-  const [uploadState, setUploadState] = useState<string | null>(null);
-  const [pageError, setPageError] = useState<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  const [page, setPage] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [formatFilter, setFormatFilter] = useState<string>("");
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const offset = page * PAGE_SIZE;
 
-  const capturesQuery = useQuery({
-    queryKey: ["org", organizationId, "captures", { limit: 50, offset: 0 }],
-    queryFn: ({ signal }) => listCaptures({ limit: 50, offset: 0 }, { signal }),
+  const queryParams = {
+    limit: PAGE_SIZE,
+    offset,
+    ...(statusFilter !== "" ? { state: statusFilter } : {}),
+  };
+
+  const listQuery = useQuery({
+    queryKey: ["org", organizationId, "captures", queryParams],
+    queryFn: ({ signal }) => listCaptures(queryParams, { signal }),
     enabled: organizationId !== null,
   });
 
-  const invalidate = async (): Promise<void> => {
-    await queryClient.invalidateQueries({ queryKey: ["org", organizationId, "captures"] });
-  };
+  const allItems = listQuery.data?.items ?? [];
+  const items = formatFilter === "" ? allItems : allItems.filter((c) => c.format === formatFilter);
+  const total = listQuery.data?.total ?? 0;
+
+  const countQueries = useQueries({
+    queries: items.map((capture) => ({
+      queryKey: ["org", organizationId, "captures", capture.id, "analyses-count"],
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
+        listCaptureAnalyses(capture.id, { limit: 1 }, { signal }),
+      enabled: organizationId !== null,
+    })),
+  });
+
+  const invalidateLists = (): Promise<void> =>
+    queryClient.invalidateQueries({ queryKey: ["org", organizationId, "captures"] });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteCapture(id),
-    onSuccess: invalidate,
-    onError: (error) => setPageError(error instanceof ApiError ? error.detail : "Delete failed."),
+    mutationFn: (captureId: string) => deleteCapture(captureId),
+    onSuccess: async () => {
+      toast.push("success", "Capture deleted.");
+      await invalidateLists();
+    },
+    onError: (error: Error) => {
+      toast.push("error", error instanceof ApiError ? error.userMessage() : "Delete failed.");
+    },
   });
 
-  const analyzeMutation = useMutation({
-    mutationFn: (id: string) => createAnalysis(id),
-    onSuccess: invalidate,
-    onError: (error) =>
-      setPageError(error instanceof ApiError ? error.detail : "Could not start analysis."),
+  const downloadMutation = useMutation({
+    mutationFn: (captureId: string) => downloadCapture(captureId),
+    onError: (error: Error) => {
+      toast.push("error", error instanceof ApiError ? error.userMessage() : "Download failed.");
+    },
   });
 
-  async function onFileSelected(event: ChangeEvent<HTMLInputElement>): Promise<void> {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (file === undefined) return;
-    setPageError(null);
-    // Pre-validation only (first 16 bytes). Backend validation is authoritative.
-    const kind = await sniffCaptureKind(file);
-    if (kind === "unknown") {
-      setPageError(
-        "That file does not start with PCAP/PCAPNG magic bytes. The server performs the authoritative validation.",
-      );
-      return;
-    }
-    const controller = new AbortController();
-    abortRef.current = controller;
+  const copyHash = async (hash: string): Promise<void> => {
     try {
-      await uploadCapture(file, {
-        signal: controller.signal,
-        onProgress: (loaded, total) =>
-          setUploadState(
-            total !== null
-              ? `Uploading ${formatBytes(loaded)} of ${formatBytes(total)}`
-              : `Uploading ${formatBytes(loaded)}`,
-          ),
-      });
-      setUploadState("Upload complete. Server-computed SHA-256 is shown in the list.");
-      await invalidate();
-    } catch (error) {
-      setPageError(error instanceof ApiError ? error.detail : "Upload failed.");
-    } finally {
-      setUploadState(null);
-      abortRef.current = null;
+      await navigator.clipboard.writeText(hash);
+      toast.push("success", "Full SHA-256 copied to clipboard.");
+    } catch {
+      toast.push("error", "Clipboard copy failed in this browser.");
     }
-  }
-
-  const captures = capturesQuery.data?.items ?? [];
+  };
 
   return (
     <section aria-labelledby="captures-heading">
       <div className="flex flex-wrap items-center gap-3">
         <h1 id="captures-heading" className="text-xl font-semibold">
-          Captures
+          Capture Vault
         </h1>
         <RequireAction action="captures:upload">
-          <label className="cursor-pointer rounded bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink">
-            Upload capture
-            <input
-              type="file"
-              accept=".pcap,.pcapng"
-              className="sr-only"
-              aria-label="Upload capture file"
-              onChange={(e) => void onFileSelected(e)}
-            />
-          </label>
+          <button
+            type="button"
+            onClick={() => setUploadOpen(true)}
+            className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink"
+          >
+            Upload Capture
+          </button>
         </RequireAction>
-        <span className="text-xs text-ink-muted">
-          Signed in as {role}. Server enforces upload limits and validation.
-        </span>
       </div>
 
-      {uploadState !== null && (
-        <p role="status" className="mt-3 text-sm">
-          {uploadState}{" "}
-          <button type="button" className="underline" onClick={() => abortRef.current?.abort()}>
-            Cancel upload
-          </button>
-        </p>
-      )}
-      {pageError !== null && (
-        <p
-          role="alert"
-          className="mt-3 rounded border border-sev-critical px-3 py-2 text-sm text-sev-critical"
-        >
-          {pageError}
-        </p>
-      )}
+      <fieldset className="mt-4 flex flex-wrap gap-3">
+        <legend className="sr-only">Filter captures</legend>
+        <label className="text-sm">
+          State{" "}
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(0);
+            }}
+            className="rounded border border-line px-2 py-1"
+          >
+            <option value="">All</option>
+            <option value="available">available</option>
+            <option value="queued">queued</option>
+            <option value="processing">processing</option>
+            <option value="failed">failed</option>
+          </select>
+        </label>
+        <label className="text-sm">
+          Format{" "}
+          <select
+            value={formatFilter}
+            onChange={(e) => {
+              setFormatFilter(e.target.value);
+              setPage(0);
+            }}
+            className="rounded border border-line px-2 py-1"
+          >
+            <option value="">All</option>
+            <option value="pcap">pcap</option>
+            <option value="pcapng">pcapng</option>
+          </select>
+        </label>
+      </fieldset>
 
-      {capturesQuery.isPending && <p className="mt-4 text-sm">Loading captures…</p>}
-      {capturesQuery.isError && (
+      {listQuery.isPending && <Skeleton label="Loading captures" rows={4} />}
+      {listQuery.isError && (
         <p role="alert" className="mt-4 text-sm text-sev-critical">
-          Could not load captures.
+          Could not load captures.{" "}
+          {listQuery.error instanceof ApiError ? listQuery.error.userMessage() : ""}
         </p>
       )}
-      {capturesQuery.isSuccess && captures.length === 0 && (
-        <p className="mt-4 text-sm text-ink-muted">No captures yet for this organization.</p>
+
+      {listQuery.isSuccess && items.length === 0 && (
+        <div className="mt-6">
+          <EmptyState title="No captures match">
+            <p>Upload an authorized PCAP/PCAPNG capture, or clear the filters above.</p>
+          </EmptyState>
+        </div>
       )}
 
-      {captures.length > 0 && (
+      {items.length > 0 && (
         <table className="mt-4 w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-line text-left">
@@ -140,16 +163,25 @@ export default function CapturesPage(): ReactNode {
                 Name
               </th>
               <th scope="col" className="py-2 pr-3">
-                SHA-256 (server)
+                Format
               </th>
               <th scope="col" className="py-2 pr-3">
                 Size
               </th>
               <th scope="col" className="py-2 pr-3">
-                Format
+                SHA-256
               </th>
               <th scope="col" className="py-2 pr-3">
                 Uploaded
+              </th>
+              <th scope="col" className="py-2 pr-3">
+                Retention
+              </th>
+              <th scope="col" className="py-2 pr-3">
+                State
+              </th>
+              <th scope="col" className="py-2 pr-3">
+                Analyses
               </th>
               <th scope="col" className="py-2">
                 Actions
@@ -157,55 +189,99 @@ export default function CapturesPage(): ReactNode {
             </tr>
           </thead>
           <tbody>
-            {captures.map((capture) => (
-              <tr key={capture.id} className="border-b border-line">
-                <td className="py-2 pr-3">{capture.display_name}</td>
-                <td className="mono py-2 pr-3">{capture.sha256}</td>
-                <td className="tnum py-2 pr-3">{formatBytes(capture.size_bytes)}</td>
+            {items.map((capture, index) => (
+              <tr key={capture.id} className="border-b border-line align-top">
+                <td className="py-2 pr-3">
+                  <Link to={`/captures/${capture.id}`} className="underline">
+                    {capture.display_name}
+                  </Link>
+                </td>
                 <td className="py-2 pr-3">{capture.format}</td>
+                <td className="tnum py-2 pr-3">
+                  {formatBytes(capture.size_bytes)}{" "}
+                  <span className="text-ink-muted">({capture.size_bytes.toLocaleString()} B)</span>
+                </td>
+                <td className="mono py-2 pr-3">
+                  {capture.sha256.slice(0, 12)}…{" "}
+                  <button
+                    type="button"
+                    aria-label={`Copy full SHA-256 for ${capture.display_name}`}
+                    onClick={() => void copyHash(capture.sha256)}
+                    className="rounded border border-line px-1 text-xs"
+                  >
+                    Copy
+                  </button>
+                </td>
                 <td className="py-2 pr-3">{formatTimestamp(capture.uploaded_at)}</td>
+                <td className="py-2 pr-3">
+                  <UnknownValue reason="Retention expiry is enforced server-side and is not exposed by the API." />
+                </td>
+                <td className="py-2 pr-3">{capture.state}</td>
+                <td className="tnum py-2 pr-3">{countQueries[index]?.data?.total ?? "…"}</td>
                 <td className="py-2">
-                  <div className="flex flex-wrap gap-2">
+                  <span className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      className="underline"
-                      onClick={() =>
-                        void downloadFile(
-                          `/api/v1/captures/${capture.id}/download`,
-                          capture.display_name,
-                        ).catch((error: unknown) =>
-                          setPageError(
-                            error instanceof ApiError ? error.detail : "Download failed.",
-                          ),
-                        )
-                      }
+                      onClick={() => downloadMutation.mutate(capture.id)}
+                      className="rounded border border-line px-2 py-1 text-xs"
                     >
                       Download
                     </button>
-                    <RequireAction action="analyses:run">
-                      <button
-                        type="button"
-                        className="underline"
-                        onClick={() => analyzeMutation.mutate(capture.id)}
-                      >
-                        Analyze
-                      </button>
-                    </RequireAction>
                     <RequireAction action="captures:delete">
                       <button
                         type="button"
-                        className="underline"
-                        onClick={() => deleteMutation.mutate(capture.id)}
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `Delete capture "${capture.display_name}"? This permanently removes the stored capture and its analysis history. Retention/audit records may keep the deletion event.`,
+                            )
+                          ) {
+                            deleteMutation.mutate(capture.id);
+                          }
+                        }}
+                        className="rounded border border-line px-2 py-1 text-xs"
                       >
                         Delete
                       </button>
                     </RequireAction>
-                  </div>
+                  </span>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+      )}
+
+      <nav aria-label="Capture pages" className="mt-4 flex items-center gap-3 text-sm">
+        <button
+          type="button"
+          disabled={page === 0}
+          onClick={() => setPage((p) => Math.max(0, p - 1))}
+          className="rounded border border-line px-2 py-1 disabled:opacity-50"
+        >
+          Previous
+        </button>
+        <span className="tnum">
+          Page {page + 1} · {total} total
+        </span>
+        <button
+          type="button"
+          disabled={offset + PAGE_SIZE >= total}
+          onClick={() => setPage((p) => p + 1)}
+          className="rounded border border-line px-2 py-1 disabled:opacity-50"
+        >
+          Next
+        </button>
+      </nav>
+
+      {uploadOpen && (
+        <UploadModal
+          onClose={() => setUploadOpen(false)}
+          onUploaded={async () => {
+            setUploadOpen(false);
+            await invalidateLists();
+          }}
+        />
       )}
     </section>
   );

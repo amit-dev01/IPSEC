@@ -69,3 +69,44 @@ export function SeverityBadge({ severity }: { severity: Severity }): ReactNode {
     </span>
   );
 }
+
+export function ScoreBar({
+  label,
+  value,
+  max,
+}: {
+  label: string;
+  value: number | null;
+  max: number;
+}): ReactNode {
+  if (value === null) {
+    return (
+      <div>
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-sm text-ink-muted">Unknown — insufficient evidence to score.</p>
+      </div>
+    );
+  }
+  const pct = Math.round((Math.min(max, Math.max(0, value)) / max) * 100);
+  return (
+    <div>
+      <p className="text-sm font-medium">
+        {label}: <span className="tnum">{value}</span> / {max}
+      </p>
+      <div
+        role="meter"
+        aria-label={label}
+        aria-valuenow={value}
+        aria-valuemin={0}
+        aria-valuemax={max}
+        className="mt-1 h-2 w-48 overflow-hidden rounded bg-surface-sunken"
+      >
+        <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+export function RiskGauge({ value }: { value: number | null }): ReactNode {
+  return <ScoreBar label="Risk score" value={value} max={100} />;
+}
