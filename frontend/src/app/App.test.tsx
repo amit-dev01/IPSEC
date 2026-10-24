@@ -5,13 +5,13 @@ import App from "@/app/App";
 import { SeverityBadge, SourceBadge } from "@/components/badges";
 
 describe("application smoke test", () => {
-  it("renders the login screen when unauthenticated", () => {
+  it("opens directly into the app in Demo Mode (no login screen)", async () => {
     render(<App />);
-    expect(screen.getByRole("heading", { name: "IPsec Analyzer" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Email")).toBeInTheDocument();
-    expect(screen.getByLabelText("Password")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
-    expect(screen.getByText(/held in memory only/)).toBeInTheDocument();
+    expect(await screen.findByText(/Demo Mode/)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Password")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Sign in" })).not.toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Primary" })).toBeInTheDocument();
   });
 
   it("renders provenance and severity badges with text labels (never color-only)", () => {

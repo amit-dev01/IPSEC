@@ -8,9 +8,8 @@ import Shell from "@/app/Shell";
 import { ToastProvider } from "@/app/toast";
 import { ErrorBoundary, Skeleton } from "@/components/ui";
 import { AuthProvider } from "@/features/auth/AuthProvider";
-import { LoginPage } from "@/features/auth/LoginPage";
 import OverviewPage from "@/features/auth/OverviewPage";
-import { RequireAction, RequireAuth, RequireRole } from "@/features/auth/guards";
+import { RequireAction, RequireRole } from "@/features/auth/guards";
 import CapturesPage from "@/features/captures/CapturesPage";
 
 // Route-level code splitting: heavy analysis/admin/report modules load on
@@ -37,15 +36,9 @@ export default function App(): ReactNode {
           <ToastProvider>
             <ErrorBoundary>
               <Routes>
-                <Route path="/login" element={<LoginPage />} />
-                <Route
-                  path="/"
-                  element={
-                    <RequireAuth>
-                      <Shell />
-                    </RequireAuth>
-                  }
-                >
+                {/* Login removed: the site opens directly in Demo Mode. */}
+                <Route path="/login" element={<Navigate to="/" replace />} />
+                <Route path="/" element={<Shell />}>
                   <Route index element={<OverviewPage />} />
                   <Route path="captures" element={<CapturesPage />} />
                   <Route
