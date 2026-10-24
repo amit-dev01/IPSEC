@@ -8,7 +8,9 @@
 # ---- Build stage ----
 FROM node:22.22.0-alpine3.22@sha256:7aa86fa052f6e4b101557ccb56717cb4311be1334381f526fe013418fe157384 AS build
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@12.15.0 --activate
+# pnpm via npm, NOT Corepack: Render builds hit a broken Corepack cache
+# ("/root/.cache/node/corepack/v1/pnpm/12.15.0/bin/pnpm.cjs" MODULE_NOT_FOUND).
+RUN npm install --global pnpm@12.15.0
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .
