@@ -52,6 +52,13 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = Field(default=15, gt=0, le=60)
     login_max_attempts: int = Field(default=5, gt=0)
     login_window_seconds: int = Field(default=300, gt=0)
+    # One-time bootstrap admin (e.g. first hosted deploy). When BOTH are set,
+    # startup creates this org+admin iff no user with the email exists; it is
+    # idempotent and never re-runs afterwards. Remove both env vars after the
+    # first successful login. The password is never logged.
+    bootstrap_email: str | None = None
+    bootstrap_password: str | None = None
+    bootstrap_organization: str = "Demo Lab"
     # None => docs only in development. Explicitly configured otherwise.
     enable_docs: bool | None = None
 
