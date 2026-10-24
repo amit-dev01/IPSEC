@@ -6,11 +6,13 @@ directly into Render when asked. **Never paste secrets into chat, email, or
 GitHub** — they go only into the provider dashboards below.
 
 Total ongoing cost: closest to ₹0 — Neon and Upstash have
-standing free tiers; Render's API web service is free (sleeps when idle),
-but **Render background workers are not free**, so the Celery/TShark worker
-uses Render's cheapest `starter` plan. Budget roughly US$7/month for that
-one item, or pause the worker when not demoing (analyses stay queued and
-process when it restarts).
+standing free tiers, and the whole app runs in **one free Render web
+service** (API + a single small Celery worker in the same container —
+Render background workers are not free, this topology is). Total cost ₹0.
+Demo trade-offs: the service sleeps when idle (queued analyses process
+when it wakes), RAM is shared so analyses run one at a time, and the
+production API/worker separation is collapsed. For production, split the
+worker out per `docker-compose.yml`.
 
 ## Architecture
 
@@ -19,7 +21,7 @@ process when it restarts).
 | Code | GitHub (already have) | Merge the PR containing `render.yaml` |
 | PostgreSQL + PCAP buckets | **Neon** | Create 1 project, 1 private bucket, 1 storage credential |
 | Redis queue | **Upstash** | Create 1 Redis database |
-| API + Worker containers | **Render** | Create 1 Blueprint from the repo |
+| App (API + worker in one container) | **Render** | Create 1 Blueprint from the repo |
 
 ## Step 1 — Neon (PostgreSQL)
 
@@ -67,7 +69,7 @@ test, use the Cloudflare R2 fallback in the appendix instead.
 
 1. Sign up at <https://render.com> → **New → Blueprint**.
 2. Connect your GitHub account and select the `IPSEC` repository
-   (the `render.yaml` file at the repo root defines both services).
+   (the `render.yaml` file at the repo root defines the app service).
 3. Render will ask for the values marked `sync: false`. Paste:
    - `IPSEC_DATABASE_URL` ← Step 1 string (with `+psycopg`)
    - `IPSEC_REDIS_URL` ← Step 2 `rediss://...` URL
@@ -81,11 +83,11 @@ test, use the Cloudflare R2 fallback in the appendix instead.
 ## Step 5 — Create your first login
 
 There is no public registration (by design). Create the first
-organization + admin once, using Render's **Shell** for the `ipsec-api`
-service (Dashboard → ipsec-api → Shell):
+organization + admin once. The easiest way is locally (same Neon
+database), from your cloned repo with your `.env` in place:
 
 ```bash
-ipsec-admin create-org-admin --organization "My Lab" --email you@example.com
+uv run ipsec-admin create-org-admin --organization "My Lab" --email you@example.com
 ```
 
 It prompts for a password (typed interactively, never stored in chat or
