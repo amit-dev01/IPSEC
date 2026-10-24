@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -21,6 +22,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings: Settings = app.state.settings
     configure_logging(settings.log_level)
     logger.info("application startup (environment=%s)", settings.environment)
+    try:
+        from ipsec_analyzer.services.bootstrap import ensure_bootstrap_admin
+
+        await asyncio.to_thread(ensure_bootstrap_admin, settings)
+    except Exception:  # noqa: BLE001 - never crash startup or leak details
+        logger.exception("bootstrap admin check failed")
     yield
     engine.dispose()
     logger.info("application shutdown")
