@@ -2,7 +2,10 @@
 __pycache__/
 *.pyc
 .env
+.env.local
 *.pcap
 *.pcapng
 .pytest_cache/
 .ruff_cache/
+.neon
+node_modules/
