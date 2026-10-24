@@ -1,9 +1,8 @@
 # Render Blueprint — no-VM demo deployment (free stack).
 #
 # Services provided by other free accounts (see docs/free-deploy.md):
-#   PostgreSQL -> Neon        IPSEC_DATABASE_URL
+#   PostgreSQL + PCAP buckets -> Neon (one account, two products)
 #   Redis      -> Upstash     IPSEC_REDIS_URL
-#   Storage    -> Cloudflare R2 (S3-compatible)  IPSEC_S3_*
 #
 # Honest cost note: the API can run on Render's free web tier (sleeps when
 # idle). Render background workers are NOT free — this worker uses the
@@ -20,15 +19,17 @@ envVarGroups:
       - key: IPSEC_REDIS_URL
         sync: false # from Upstash: rediss://...
       - key: IPSEC_S3_ENDPOINT_URL
-        sync: false # from Cloudflare R2: https://<account-id>.r2.cloudflarestorage.com
+        sync: false # Neon branch storage endpoint: https://br-...storage....neon.tech
       - key: IPSEC_S3_BUCKET
         value: ipsec-captures
       - key: IPSEC_S3_ACCESS_KEY
-        sync: false # R2 API token Access Key ID
+        sync: false # Neon storage credential token_id (nak_live_...)
       - key: IPSEC_S3_SECRET_KEY
-        sync: false # R2 API token Secret Access Key
+        sync: false # Neon storage credential s3_secret_access_key (nsk_live_...)
       - key: IPSEC_S3_REGION
-        value: auto
+        sync: false # Neon storage region returned with the endpoint (e.g. ap-southeast-1)
+      - key: IPSEC_S3_ADDRESSING_STYLE
+        value: path # Neon Object Storage is path-style only
       - key: IPSEC_S3_SSE_ALGORITHM
         value: AES256
       - key: IPSEC_JWT_SIGNING_KEY

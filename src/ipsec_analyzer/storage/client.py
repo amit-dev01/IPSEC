@@ -14,5 +14,9 @@ def make_s3_client(settings: Settings):  # noqa: ANN202 - boto3 has no typed cli
         aws_access_key_id=settings.s3_access_key,
         aws_secret_access_key=settings.s3_secret_key,
         region_name=settings.s3_region,
-        config=Config(signature_version="s3v4", retries={"max_attempts": 3}),
+        config=Config(
+            signature_version="s3v4",
+            retries={"max_attempts": 3},
+            s3={"addressing_style": settings.s3_addressing_style},
+        ),
     )

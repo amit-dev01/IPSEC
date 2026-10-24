@@ -1,11 +1,11 @@
 # Free No-VM Deployment Guide
 
 Deploy the IPsec Analyzer without any VM/VPS, using managed free tiers.
-You create **4 free accounts** and paste each service's connection value
+You create **3 free accounts** and paste each service's connection value
 directly into Render when asked. **Never paste secrets into chat, email, or
 GitHub** — they go only into the provider dashboards below.
 
-Total ongoing cost: closest to ₹0 — Neon, Upstash, and Cloudflare R2 have
+Total ongoing cost: closest to ₹0 — Neon and Upstash have
 standing free tiers; Render's API web service is free (sleeps when idle),
 but **Render background workers are not free**, so the Celery/TShark worker
 uses Render's cheapest `starter` plan. Budget roughly US$7/month for that
@@ -17,9 +17,8 @@ process when it restarts).
 | Piece of the app | Provider | Your action |
 |---|---|---|
 | Code | GitHub (already have) | Merge the PR containing `render.yaml` |
-| PostgreSQL database | **Neon** | Create 1 project |
+| PostgreSQL + PCAP buckets | **Neon** | Create 1 project, 1 private bucket, 1 storage credential |
 | Redis queue | **Upstash** | Create 1 Redis database |
-| PCAP file storage (S3) | **Cloudflare R2** | Create 1 bucket + 1 API token |
 | API + Worker containers | **Render** | Create 1 Blueprint from the repo |
 
 ## Step 1 — Neon (PostgreSQL)
@@ -33,6 +32,29 @@ process when it restarts).
      (just insert `+psycopg` after `postgresql`).
 5. Keep this string ready for Step 4. Do not share it anywhere else.
 
+### Neon bucket (same account, no extra signup)
+
+Neon also provides S3-compatible **Object Storage buckets**, so PCAP files
+do not need a separate storage provider:
+
+1. Create the project in **AWS Asia Pacific (Singapore)** — object storage
+   is only available in some Neon regions, and Singapore is one of them.
+2. In the project, open **Object storage** and create a **private** bucket
+   named exactly `ipsec-captures`.
+3. Note the branch **S3 endpoint** and **region** shown for the bucket
+   (endpoint looks like `https://br-...storage....neon.tech`).
+4. Create a storage credential with **storage:read + storage:write**
+   (Console credential flow, or Neon CLI:
+   `neon credentials create --scope storage:read --scope storage:write`).
+   Copy the `token_id` (`nak_live_...`) and `s3_secret_access_key`
+   (`nsk_live_...`) — the secret is shown only once.
+5. Keep endpoint, region, and both credential values ready for Step 4.
+
+Honest caveats: Neon Object Storage is **Beta**, free-plan bucket storage
+is **5 GB per project**, and this app has not been tested against a live
+Neon bucket from the build sandbox. If bucket uploads fail in your first
+test, use the Cloudflare R2 fallback in the appendix instead.
+
 ## Step 2 — Upstash (Redis)
 
 1. Sign up at <https://upstash.com> → **Redis → Create Database**.
@@ -40,22 +62,6 @@ process when it restarts).
 3. In the database details, copy the **`rediss://...` URL** (TLS form,
    shown under Connect / endpoint details).
 4. Keep it ready for Step 4.
-
-## Step 3 — Cloudflare R2 (PCAP storage)
-
-Note: Cloudflare may ask for a payment method to enable R2 even on the
-free tier — the free allowance (10 GB storage) is what this app uses.
-
-1. Sign up at <https://dash.cloudflare.com> → **R2 Object Storage**.
-2. **Create bucket**, name exactly: `ipsec-captures`.
-3. Go to **Manage R2 API Tokens → Create API Token**:
-   - Permission: **Object Read & Write**, scoped to the `ipsec-captures` bucket.
-4. Copy three values and keep them ready for Step 4:
-   - **Access Key ID**
-   - **Secret Access Key** (shown only once)
-   - **Endpoint**: `https://<your-account-id>.r2.cloudflarestorage.com`
-     (shown on the R2 overview page; your account ID, not a secret by
-     itself, but treat the keys above as secrets).
 
 ## Step 4 — Render (runs the app)
 
@@ -108,6 +114,16 @@ JWT keys, or Render/GitHub tokens — with anyone, including this assistant.
 ## Known limitations of this free stack
 
 - Free Render API sleeps when idle: first request after idle is slow.
-- Free tiers have small limits (Neon 1 GB DB, R2 10 GB) — plenty for a
-  demo; PCAP files live in R2, not the database.
+- Free tiers have small limits (Neon 1 GB DB, 5 GB bucket storage) — fine
+  for a demo; PCAP files live in the Neon bucket, not the database.
+- Neon Object Storage is Beta; bucket branches follow database branches,
+  so always use the bucket/endpoint of the same branch as the database.
 - Image digests are still unpinned (see `docs/runbook.md`).
+
+## Appendix — Cloudflare R2 fallback (only if Neon buckets fail)
+
+1. At <https://dash.cloudflare.com> → **R2** → create bucket
+   `ipsec-captures` and an **Object Read & Write** API token for it.
+2. In Render, change only: `IPSEC_S3_ENDPOINT_URL` (R2 endpoint),
+   `IPSEC_S3_ACCESS_KEY`, `IPSEC_S3_SECRET_KEY`, `IPSEC_S3_REGION=auto`,
+   `IPSEC_S3_ADDRESSING_STYLE=auto`, then redeploy.
