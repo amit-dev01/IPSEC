@@ -4,9 +4,13 @@
 #   PostgreSQL + PCAP buckets -> Neon (one account, two products)
 #   Redis      -> Upstash     IPSEC_REDIS_URL
 #
-# Honest cost note: the API can run on Render's free web tier (sleeps when
-# idle). Render background workers are NOT free — this worker uses the
-# cheapest `starter` plan. Everything else above has a standing free tier.
+# Cost: 100% free tier. Render background workers are NOT free, so this
+# demo runs the API and a single Celery worker in ONE free web service
+# (built from the worker image, the only one containing TShark). Demo
+# trade-offs: the service sleeps when idle (queued analyses process when
+# it wakes), RAM is shared (one analysis at a time, --pool=solo), and the
+# API/worker separation of the production Compose setup is collapsed.
+# For production, split the worker out per docker-compose.yml.
 # No VM/VPS is used anywhere in this deployment.
 
 envVarGroups:
@@ -37,24 +41,20 @@ envVarGroups:
 
 services:
   - type: web
-    name: ipsec-api
+    name: ipsec-app
     env: docker
     plan: free
     region: singapore
-    dockerfilePath: ./Dockerfile.api
-    dockerContext: .
-    # Migrate once at boot, then serve. Render injects $PORT.
-    dockerCommand: sh -c "alembic upgrade head && exec uvicorn ipsec_analyzer.main:app --host 0.0.0.0 --port $PORT"
-    healthCheckPath: /api/v1/health/live
-    envVars:
-      - fromGroup: ipsec-env
-
-  - type: worker
-    name: ipsec-worker
-    env: docker
-    plan: starter # Render has no free background-worker tier
-    region: singapore
     dockerfilePath: ./Dockerfile.worker
     dockerContext: .
+    # Migrate once at boot, start one small worker, then serve the API.
+    # Render injects $PORT. Worker is solo-pool/concurrency-1 to fit the
+    # free tier's shared RAM; it processes queued jobs while awake.
+    dockerCommand: >-
+      sh -c "alembic upgrade head &&
+      celery -A ipsec_analyzer.workers.celery_app:celery_app worker
+      --loglevel=INFO --pool=solo --concurrency=1 &
+      exec uvicorn ipsec_analyzer.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /api/v1/health/live
     envVars:
       - fromGroup: ipsec-env
