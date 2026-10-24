@@ -7,7 +7,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { RequireAction } from "@/features/auth/guards";
 
 export default function Shell(): ReactNode {
-  const { email, organizationId, role, logout } = useAuth();
+  const { email, organizationId, role, logout, isDemoMode, isAuthenticated } = useAuth();
 
   const healthQuery = useQuery({
     queryKey: ["health", "ready"],
@@ -77,14 +77,26 @@ export default function Shell(): ReactNode {
             Backend: {healthQuery.isPending ? "checking…" : backendReady ? "ready" : "degraded"}
           </span>
           <span className="ml-auto flex items-center gap-3 text-sm">
-            <span className="font-medium">{email}</span>
-            <button
-              type="button"
-              onClick={logout}
-              className="rounded border border-line px-2 py-1 text-sm"
-            >
-              Sign Out
-            </button>
+            {isDemoMode ? (
+              <span
+                role="status"
+                className="inline-flex items-center rounded border border-accent px-2 py-0.5 text-xs font-medium"
+              >
+                Demo Mode — login removed
+              </span>
+            ) : (
+              <>
+                <span className="font-medium">{email}</span>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="rounded border border-line px-2 py-1 text-sm"
+                >
+                  Sign Out
+                </button>
+              </>
+            )}
+            {isAuthenticated && <span className="sr-only">Signed in as {email}</span>}
           </span>
         </header>
 

@@ -20,7 +20,7 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
     // then leave the protected area. Zero previous-tenant data remains.
     endSession();
     queryClient.clear();
-    void navigate("/login", { replace: true });
+    void navigate("/", { replace: true });
   }, [navigate, queryClient]);
 
   // Any 401 anywhere in the app resets the session exactly like logout.
@@ -55,11 +55,16 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
     [navigate, queryClient],
   );
 
+  // Demo Mode: the website no longer has a login screen. Without a real
+  // session the UI runs under a clearly-labeled demo identity so every
+  // screen is reachable; the backend API still enforces its own auth and
+  // its 401 responses surface as data errors, never fabricated data.
   const value: AuthContextValue = {
     isAuthenticated: session !== null,
-    email: session?.user.email ?? null,
-    organizationId: session?.user.organization_id ?? null,
-    role: roleOf(session?.user ?? null),
+    isDemoMode: session === null,
+    email: session?.user.email ?? "demo@ipsec.lab",
+    organizationId: session?.user.organization_id ?? "demo-organization",
+    role: roleOf(session?.user ?? null) ?? "admin",
     login,
     logout,
   };

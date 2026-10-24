@@ -3,11 +3,10 @@ import type { Page } from "@playwright/test";
 
 const PCAP = Buffer.concat([Buffer.from([0xd4, 0xc3, 0xb2, 0xa1]), Buffer.alloc(128, 7)]);
 
-async function login(page: Page, email: string): Promise<void> {
-  await page.goto("/login");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill("correct-password");
-  await page.getByRole("button", { name: "Sign in" }).click();
+async function login(page: Page): Promise<void> {
+  // Login was removed from the website: the app opens directly in Demo Mode.
+  await page.goto("/");
+  await expect(page.getByText(/Demo Mode/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
 }
 
@@ -15,7 +14,7 @@ test.describe("analyst journeys (mock API)", () => {
   test("1. login → upload → SHA-256 → analysis polls → IKE facts + unknown ESP → report download", async ({
     page,
   }) => {
-    await login(page, "analyst@example.test");
+    await login(page);
     await page.getByRole("link", { name: "Captures" }).click();
     await page.getByRole("button", { name: "Upload Capture" }).click();
     await page.getByLabel("Choose a capture file").setInputFiles({
@@ -45,7 +44,7 @@ test.describe("analyst journeys (mock API)", () => {
   });
 
   test("2. manifest attach → provenance side-by-side + discrepancy", async ({ page }) => {
-    await login(page, "analyst@example.test");
+    await login(page);
     await page.goto("/captures/cap-poor");
     // Manifest panel is on the capture detail; use the form's required field.
     await page.getByLabel(/Testbed ID/).fill("lab-a");
@@ -56,7 +55,7 @@ test.describe("analyst journeys (mock API)", () => {
   test("3. insufficient-evidence capture shows Score Withheld, not a safe score", async ({
     page,
   }) => {
-    await login(page, "analyst@example.test");
+    await login(page);
     await page.goto("/captures/cap-poor");
     await page.getByRole("button", { name: "Run Security Analysis" }).click();
     await expect(page.getByLabel("Status: succeeded")).toBeVisible({ timeout: 20_000 });
@@ -65,13 +64,12 @@ test.describe("analyst journeys (mock API)", () => {
     await expect(page.getByText(/Score Withheld — Insufficient Evidence/)).toBeVisible();
   });
 
-  test("4. role enforcement + cache wipe on logout", async ({ page }) => {
-    await login(page, "viewer@example.test");
-    await page.getByRole("link", { name: "Captures" }).click();
-    await expect(page.getByRole("button", { name: "Upload Capture" })).toHaveCount(0);
-    await page.goto("/admin/audit");
-    await expect(page.getByText(/do not have access/)).toBeVisible();
-    await page.getByRole("button", { name: /sign out/i }).click();
-    await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
+  test("4. site opens without any login (Demo Mode)", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText(/Demo Mode/)).toBeVisible();
+    await expect(page.getByLabel("Email")).toHaveCount(0);
+    await expect(page.getByLabel("Password")).toHaveCount(0);
+    await page.goto("/login");
+    await expect(page.getByText(/Demo Mode/)).toBeVisible();
   });
 });
