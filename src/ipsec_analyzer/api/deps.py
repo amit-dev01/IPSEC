@@ -81,8 +81,6 @@ def get_current_user(
                 return get_demo_user(db)
         return get_demo_user(db)
 
-
-
     if credentials is None:
         raise HTTPException(status_code=401, detail="authentication required")
     try:
@@ -98,7 +96,6 @@ def get_current_user(
     # Organization is derived here, from the database user — never from the token
     # claims or any client-supplied tenant ID.
     return user
-
 
 
 def require_permission(permission: Permission):

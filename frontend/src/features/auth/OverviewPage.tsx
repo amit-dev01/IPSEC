@@ -33,7 +33,10 @@ export default function OverviewPage(): ReactNode {
               WORKSPACE // MONITOR
             </span>
           </div>
-          <h1 id="overview-heading" className="text-2xl md:text-3xl font-normal text-[#f7f9fa] mt-1 tracking-tight">
+          <h1
+            id="overview-heading"
+            className="text-2xl md:text-3xl font-normal text-[#f7f9fa] mt-1 tracking-tight"
+          >
             Overview
           </h1>
         </div>
@@ -78,17 +81,13 @@ export default function OverviewPage(): ReactNode {
           {/* 4 Metric Cards — dope.security 19.2px radius */}
           <dl className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <div className="rounded-[19.2px] border border-[#f7f9fa]/10 bg-[rgba(247,249,250,0.02)] p-5">
-              <dt className="font-mono text-[11px] text-[#828384]">
-                Tenant captures
-              </dt>
+              <dt className="font-mono text-[11px] text-[#828384]">Tenant captures</dt>
               <dd className="tnum mt-2 font-mono text-3xl font-light text-[#f7f9fa]">
                 {ws.capturesTotal}
               </dd>
             </div>
             <div className="rounded-[19.2px] border border-[#f7f9fa]/10 bg-[rgba(247,249,250,0.02)] p-5">
-              <dt className="font-mono text-[11px] text-[#828384]">
-                Active / queued runs
-              </dt>
+              <dt className="font-mono text-[11px] text-[#828384]">Active / queued runs</dt>
               <dd className="tnum mt-2 font-mono text-3xl font-light text-[#af50ff]">
                 {ws.activeRuns.length}
               </dd>
@@ -138,13 +137,20 @@ export default function OverviewPage(): ReactNode {
                   {ws.captures.slice(0, 5).map((capture) => (
                     <tr key={capture.id} className="hover:bg-[#f7f9fa]/5 transition-colors">
                       <td className="py-3 pr-4 font-sans text-sm">
-                        <Link to={`/captures/${capture.id}`} className="text-[#f7f9fa] hover:text-[#af50ff] transition-colors">
+                        <Link
+                          to={`/captures/${capture.id}`}
+                          className="text-[#f7f9fa] hover:text-[#af50ff] transition-colors"
+                        >
                           {capture.display_name}
                         </Link>
                       </td>
                       <td className="py-3 pr-4 text-[#828384]">{capture.format}</td>
-                      <td className="tnum py-3 pr-4 text-[#828384]">{formatBytes(capture.size_bytes)}</td>
-                      <td className="py-3 text-[#828384]">{formatTimestamp(capture.uploaded_at)}</td>
+                      <td className="tnum py-3 pr-4 text-[#828384]">
+                        {formatBytes(capture.size_bytes)}
+                      </td>
+                      <td className="py-3 text-[#828384]">
+                        {formatTimestamp(capture.uploaded_at)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -168,7 +174,10 @@ export default function OverviewPage(): ReactNode {
                     className="flex flex-wrap items-center gap-3 rounded-[10.8px] border border-[#f7f9fa]/10 bg-[#090909] px-4 py-3 text-xs font-mono"
                   >
                     <StatusPill status={run.status} />
-                    <Link to={`/analyses/${run.id}`} className="text-[#f7f9fa] hover:text-[#af50ff] underline">
+                    <Link
+                      to={`/analyses/${run.id}`}
+                      className="text-[#f7f9fa] hover:text-[#af50ff] underline"
+                    >
                       {run.id}
                     </Link>
                     <span className="text-[#828384]">

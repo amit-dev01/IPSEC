@@ -13,7 +13,6 @@ import OverviewPage from "@/features/auth/OverviewPage";
 import { RequireAction, RequireRole } from "@/features/auth/guards";
 import CapturesPage from "@/features/captures/CapturesPage";
 
-
 // Route-level code splitting: heavy analysis/admin/report modules load on
 // demand so the login/overview bundle stays small.
 const AnalysesPage = lazy(() => import("@/features/analyses/AnalysesPage"));
@@ -40,7 +39,6 @@ export default function App(): ReactNode {
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/" element={<Shell />}>
-
                   <Route index element={<OverviewPage />} />
                   <Route path="captures" element={<CapturesPage />} />
 

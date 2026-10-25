@@ -70,7 +70,6 @@ export default function Shell(): ReactNode {
           </NavLink>
         )}
 
-
         {/* Sidebar Footer Stamp */}
         <div className="mt-auto border-t border-[#f7f9fa]/10 pt-4 px-2">
           <div className="flex items-center gap-1.5 font-mono text-[10px] text-[#828384]">
@@ -147,7 +146,6 @@ export default function Shell(): ReactNode {
             <strong>Backend degraded:</strong> the API readiness check is failing. Data shown may be
             stale; analysis jobs may not start until the backend recovers.
           </div>
-
         )}
 
         <main className="mx-auto w-full max-w-6xl flex-1 p-6 md:p-8">

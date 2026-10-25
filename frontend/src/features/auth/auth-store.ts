@@ -66,7 +66,6 @@ export function endSession(): void {
   emit();
 }
 
-
 export function useSession(): Session | null {
   return useSyncExternalStore(
     (onChange) => {

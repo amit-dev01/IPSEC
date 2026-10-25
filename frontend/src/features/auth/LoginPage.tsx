@@ -129,7 +129,7 @@ export function LoginPage(): ReactNode {
               {/* Stamped letterhead indicator */}
               <div className="mt-10 border-t border-[#f7f9fa]/10 pt-6">
                 <p className="font-mono text-xs uppercase tracking-[0.2em] text-[#f0f0f0]">
-                  S A N D B O X E D   T S H A R K   ·   Z E R O   C L O U D   L L M
+                  S A N D B O X E D T S H A R K · Z E R O C L O U D L L M
                 </p>
                 <p className="mt-2 text-xs text-[#828384]">
                   RFC 7296 (IKEv2) · RFC 4303 (ESP) · Strict tenant isolation · Argon2id + HS256
@@ -170,23 +170,23 @@ export function LoginPage(): ReactNode {
                 {/* Route Line */}
                 <div className="mt-4 flex items-center justify-between font-mono text-[11px] text-[#828384]">
                   <div>
-                    <span className="block text-[9px] uppercase tracking-wider text-[#6b6b6b]">ORIGIN</span>
+                    <span className="block text-[9px] uppercase tracking-wider text-[#6b6b6b]">
+                      ORIGIN
+                    </span>
                     <span className="text-[#f7f9fa]">TESTBED PCAP</span>
                   </div>
-                  <div className="flex-1 px-4 text-center text-[#af50ff]">
-                    -----------------→
-                  </div>
+                  <div className="flex-1 px-4 text-center text-[#af50ff]">-----------------→</div>
                   <div className="text-right">
-                    <span className="block text-[9px] uppercase tracking-wider text-[#6b6b6b]">DESTINATION</span>
+                    <span className="block text-[9px] uppercase tracking-wider text-[#6b6b6b]">
+                      DESTINATION
+                    </span>
                     <span className="text-[#f7f9fa]">DEFENSIVE AUDIT</span>
                   </div>
                 </div>
 
                 {/* Terminal Title */}
                 <div className="mt-6">
-                  <h2 className="text-xl font-medium text-[#f7f9fa]">
-                    Analyst Terminal Access
-                  </h2>
+                  <h2 className="text-xl font-medium text-[#f7f9fa]">Analyst Terminal Access</h2>
                   <p className="mt-1 text-xs text-[#828384]">
                     Select an instant profile or enter any credentials to enter:
                   </p>
@@ -241,7 +241,10 @@ export function LoginPage(): ReactNode {
                   aria-describedby={error !== null ? errorId : undefined}
                 >
                   <div>
-                    <label htmlFor={emailId} className="mb-1 block font-mono text-xs uppercase tracking-wider text-[#828384]">
+                    <label
+                      htmlFor={emailId}
+                      className="mb-1 block font-mono text-xs uppercase tracking-wider text-[#828384]"
+                    >
                       Email
                     </label>
                     <input
@@ -257,7 +260,10 @@ export function LoginPage(): ReactNode {
                   </div>
 
                   <div>
-                    <label htmlFor={passwordId} className="mb-1 block font-mono text-xs uppercase tracking-wider text-[#828384]">
+                    <label
+                      htmlFor={passwordId}
+                      className="mb-1 block font-mono text-xs uppercase tracking-wider text-[#828384]"
+                    >
                       Password
                     </label>
                     <input
@@ -308,7 +314,7 @@ export function LoginPage(): ReactNode {
       <section className="border-t border-[#f7f9fa]/10 py-20 bg-[#090909]">
         <div className="mx-auto max-w-[1200px] px-6 md:px-12">
           <p className="font-mono text-3xl md:text-5xl uppercase tracking-[0.2em] text-[#f0f0f0] font-normal leading-tight text-center md:text-left">
-            I P S E C   I N S P E C T I O N
+            I P S E C I N S P E C T I O N
           </p>
           <p className="mt-3 text-sm text-[#828384] max-w-2xl font-light">
             Every cryptographic assertion is linked to raw network frames. Flight-tested inspection
@@ -323,7 +329,8 @@ export function LoginPage(): ReactNode {
                 CIPHER EXTRACTION
               </h3>
               <p className="mt-2 text-xs text-[#828384] leading-relaxed">
-                IKEv2 SA proposals and Child SA transforms are mapped to ENCR, PRF, INTEG, and D-H attributes directly from packet traces.
+                IKEv2 SA proposals and Child SA transforms are mapped to ENCR, PRF, INTEG, and D-H
+                attributes directly from packet traces.
               </p>
             </div>
 
@@ -333,7 +340,8 @@ export function LoginPage(): ReactNode {
                 ZERO FABRICATION
               </h3>
               <p className="mt-2 text-xs text-[#828384] leading-relaxed">
-                Unobserved parameters (e.g. ESP tunnels without matching key exchange) are scored as unknown — never falsely certified secure.
+                Unobserved parameters (e.g. ESP tunnels without matching key exchange) are scored as
+                unknown — never falsely certified secure.
               </p>
             </div>
 
@@ -343,7 +351,8 @@ export function LoginPage(): ReactNode {
                 SANDBOXED LOCAL
               </h3>
               <p className="mt-2 text-xs text-[#828384] leading-relaxed">
-                Local headless TShark parsing with deterministic memory and packet limits. No PCAP bytes ever leave your perimeter.
+                Local headless TShark parsing with deterministic memory and packet limits. No PCAP
+                bytes ever leave your perimeter.
               </p>
             </div>
 
@@ -353,7 +362,8 @@ export function LoginPage(): ReactNode {
                 AUDIT REPORTS
               </h3>
               <p className="mt-2 text-xs text-[#828384] leading-relaxed">
-                Generate formal compliance assessments with threat matrix mappings, risk scoring, and reproducible evidence chains.
+                Generate formal compliance assessments with threat matrix mappings, risk scoring,
+                and reproducible evidence chains.
               </p>
             </div>
           </div>
@@ -372,8 +382,9 @@ export function LoginPage(): ReactNode {
                 Hardware-grade cryptographic verification in seconds.
               </h2>
               <p className="mt-3 text-sm md:text-base text-[#090909]/85 leading-relaxed font-normal">
-                Drop your authorized testbed PCAPs directly into the vault. Immediate dissection
-                of SA lifetimes, PFS compliance, and cipher suites without installing intrusive endpoint agents.
+                Drop your authorized testbed PCAPs directly into the vault. Immediate dissection of
+                SA lifetimes, PFS compliance, and cipher suites without installing intrusive
+                endpoint agents.
               </p>
               <div className="mt-8">
                 <button

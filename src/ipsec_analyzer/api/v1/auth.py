@@ -92,7 +92,6 @@ def login(
     return TokenResponse(access_token=token, expires_in=settings.access_token_expire_minutes * 60)
 
 
-
 @router.get("/auth/me", response_model=MeResponse)
 def me(user: Annotated[User, Depends(get_current_user)]) -> MeResponse:
     return MeResponse(
