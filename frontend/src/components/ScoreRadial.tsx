@@ -123,7 +123,6 @@ function AnimatedArc({
     };
   }, [target, delay]);
 
-  const circumference = 2 * Math.PI * r;
   // We draw a full 330° arc (leaving a 30° gap at bottom) for aesthetics
   const ARC_DEG = 330;
 
