@@ -86,7 +86,7 @@ export function LoginPage(): ReactNode {
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-[#af50ff]/30 bg-[#af50ff]/10 px-3 py-1 text-xs font-mono text-[#e1bdff]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#af50ff] animate-pulse" />
-            NO-AUTH DEMO
+            Demo Mode
           </span>
           <a
             href="#signin-card"
