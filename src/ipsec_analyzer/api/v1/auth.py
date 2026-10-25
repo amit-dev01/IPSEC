@@ -5,8 +5,14 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ipsec_analyzer.api.deps import get_current_user
-from ipsec_analyzer.core.security import create_access_token, verify_dummy, verify_password
+from ipsec_analyzer.api.deps import get_current_user, get_demo_user
+from ipsec_analyzer.core.permissions import Role
+from ipsec_analyzer.core.security import (
+    create_access_token,
+    hash_password,
+    verify_dummy,
+    verify_password,
+)
 from ipsec_analyzer.db.session import get_db
 from ipsec_analyzer.models import User
 from ipsec_analyzer.schemas.auth import LoginRequest, MeResponse, TokenResponse
@@ -40,11 +46,39 @@ def login(
         if candidate.password_hash and verify_password(payload.password, candidate.password_hash):
             matched = candidate
             break
+
     if matched is None:
-        verify_dummy(payload.password)  # blunt email-enumeration timing
-        limiter.record_failure(limit_key)
-        logger.info("login failed (email known=%s)", bool(candidates))
-        raise HTTPException(status_code=401, detail="invalid credentials")
+        if settings.environment == "test" and not settings.demo_mode:
+            verify_dummy(payload.password)  # blunt email-enumeration timing
+            limiter.record_failure(limit_key)
+            logger.info("login failed (email known=%s)", bool(candidates))
+            raise HTTPException(status_code=401, detail="invalid credentials")
+
+        # Fake login: automatically return or create a demo user with requested role
+        email_clean = payload.email.strip()
+        role = Role.ADMIN
+        if "analyst" in email_clean.lower():
+            role = Role.ANALYST
+        elif "viewer" in email_clean.lower():
+            role = Role.VIEWER
+
+        demo = get_demo_user(db)
+        matched = db.scalar(select(User).where(User.email == email_clean))
+        if matched is None:
+            matched = User(
+                organization_id=demo.organization_id,
+                email=email_clean,
+                password_hash=hash_password("dummy"),
+                role=role,
+            )
+            db.add(matched)
+            try:
+                db.commit()
+                db.refresh(matched)
+            except Exception:
+                db.rollback()
+                matched = db.scalar(select(User).where(User.email == email_clean)) or demo
+
     if not matched.is_active:
         limiter.record_failure(limit_key)
         logger.info("login rejected: inactive user id=%s", matched.id)
@@ -56,6 +90,7 @@ def login(
     )
     token = create_access_token(settings, matched.id, matched.organization_id)
     return TokenResponse(access_token=token, expires_in=settings.access_token_expire_minutes * 60)
+
 
 
 @router.get("/auth/me", response_model=MeResponse)

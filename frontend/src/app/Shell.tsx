@@ -77,27 +77,26 @@ export default function Shell(): ReactNode {
             Backend: {healthQuery.isPending ? "checking…" : backendReady ? "ready" : "degraded"}
           </span>
           <span className="ml-auto flex items-center gap-3 text-sm">
-            {isDemoMode ? (
+            {isDemoMode && (
               <span
                 role="status"
                 className="inline-flex items-center rounded border border-accent px-2 py-0.5 text-xs font-medium"
               >
-                Demo Mode — login removed
+                Demo Mode
               </span>
-            ) : (
-              <>
-                <span className="font-medium">{email}</span>
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="rounded border border-line px-2 py-1 text-sm"
-                >
-                  Sign Out
-                </button>
-              </>
             )}
+            <span className="font-medium text-ink">{email ?? "admin@ipsec.lab"}</span>
+            <button
+              type="button"
+              onClick={logout}
+              className="cursor-pointer rounded-md border border-line px-2.5 py-1 text-xs font-medium text-ink hover:bg-surface-sunken transition"
+            >
+              Sign Out
+            </button>
             {isAuthenticated && <span className="sr-only">Signed in as {email}</span>}
           </span>
+
+
         </header>
 
         {degraded && (

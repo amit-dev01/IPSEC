@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from ipsec_analyzer.api.v1.router import api_router
@@ -64,6 +65,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "instance": str(request.url.path),
             },
         )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     app.state.login_rate_limiter = LoginRateLimiter(
         resolved.login_max_attempts, resolved.login_window_seconds

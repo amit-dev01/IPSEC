@@ -10,7 +10,25 @@ export interface Session {
   user: MeResponse;
 }
 
-let session: Session | null = null;
+const SESSION_STORAGE_KEY = "ipsec_auth_session";
+
+function restoreSession(): Session | null {
+  if (typeof window === "undefined" || !window.sessionStorage) return null;
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Session;
+    if (parsed && parsed.token && parsed.user) {
+      setAccessToken(parsed.token);
+      return parsed;
+    }
+  } catch {
+    // ignore storage error
+  }
+  return null;
+}
+
+let session: Session | null = restoreSession();
 const listeners = new Set<() => void>();
 
 function emit(): void {
@@ -24,6 +42,13 @@ export function getSession(): Session | null {
 export function startSession(token: string, user: MeResponse): void {
   setAccessToken(token);
   session = { token, user };
+  try {
+    if (typeof window !== "undefined" && window.sessionStorage) {
+      window.sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+    }
+  } catch {
+    // ignore storage error
+  }
   emit();
 }
 
@@ -31,8 +56,16 @@ export function startSession(token: string, user: MeResponse): void {
 export function endSession(): void {
   clearAccessToken();
   session = null;
+  try {
+    if (typeof window !== "undefined" && window.sessionStorage) {
+      window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    }
+  } catch {
+    // ignore storage error
+  }
   emit();
 }
+
 
 export function useSession(): Session | null {
   return useSyncExternalStore(
