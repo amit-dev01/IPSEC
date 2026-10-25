@@ -574,21 +574,46 @@ def stream_analysis_events(
     user: Annotated[User, Depends(require_permission(Permission.ANALYSES_READ))],
     db: Annotated[Session, Depends(get_db)],
 ):
-    """Stream analysis progress, pipeline phases, and discovered findings as Server-Sent Events (SSE)."""
+    """Stream analysis progress, pipeline phases, and findings as SSE."""
     import json
     import time
+
     from fastapi.responses import StreamingResponse
 
     run = _analysis_or_404(db, user, analysis_id)
 
+    def sse(event: str, data: dict) -> str:
+        return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
     def event_stream():
-        yield f"event: phase\ndata: {json.dumps({'phase': 'ingress', 'progress': 0.15, 'message': 'Verifying capture SHA-256 and magic format bytes...'})}\n\n"
+        yield sse(
+            "phase",
+            {
+                "phase": "ingress",
+                "progress": 0.15,
+                "message": "Verifying capture SHA-256 and magic format bytes...",
+            },
+        )
         time.sleep(0.08)
 
-        yield f"event: phase\ndata: {json.dumps({'phase': 'dissection', 'progress': 0.35, 'message': 'Dissecting IKEv2 / ESP / AH frame headers with TShark dissector...'})}\n\n"
+        yield sse(
+            "phase",
+            {
+                "phase": "dissection",
+                "progress": 0.35,
+                "message": "Dissecting IKEv2 / ESP / AH frame headers with TShark dissector...",
+            },
+        )
         time.sleep(0.08)
 
-        yield f"event: phase\ndata: {json.dumps({'phase': 'facts', 'progress': 0.55, 'message': 'Extracting SPIs, IKE SA proposals, transforms, and rekey telemetry...'})}\n\n"
+        yield sse(
+            "phase",
+            {
+                "phase": "facts",
+                "progress": 0.55,
+                "message": "Extracting SPIs, IKE SA proposals, transforms, and rekey telemetry...",
+            },
+        )
         time.sleep(0.08)
 
         findings = list(
@@ -596,18 +621,51 @@ def stream_analysis_events(
                 select(Finding).where(Finding.analysis_id == run.id).order_by(Finding.rule_id)
             )
         )
-        yield f"event: phase\ndata: {json.dumps({'phase': 'policy_eval', 'progress': 0.75, 'message': f'Evaluating NIST SP 800-77 & RFC compliance rules ({len(findings)} findings evaluated)...'})}\n\n"
+        yield sse(
+            "phase",
+            {
+                "phase": "policy_eval",
+                "progress": 0.75,
+                "message": (
+                    f"Evaluating NIST SP 800-77 & RFC compliance rules "
+                    f"({len(findings)} findings evaluated)..."
+                ),
+            },
+        )
         time.sleep(0.05)
 
         for f in findings:
             actual_val = str(f.actual_value) if f.actual_value is not None else None
-            yield f"event: finding\ndata: {json.dumps({'rule_id': f.rule_id, 'severity': str(f.severity), 'recommendation': f.recommendation, 'actual_value': actual_val})}\n\n"
+            yield sse(
+                "finding",
+                {
+                    "rule_id": f.rule_id,
+                    "severity": str(f.severity),
+                    "recommendation": f.recommendation,
+                    "actual_value": actual_val,
+                },
+            )
             time.sleep(0.04)
 
-        yield f"event: phase\ndata: {json.dumps({'phase': 'scoring', 'progress': 0.90, 'message': 'Computing domain posture weights and confidence metrics...'})}\n\n"
+        yield sse(
+            "phase",
+            {
+                "phase": "scoring",
+                "progress": 0.90,
+                "message": "Computing domain posture weights and confidence metrics...",
+            },
+        )
         time.sleep(0.08)
 
-        yield f"event: complete\ndata: {json.dumps({'status': str(run.status), 'security_score': run.security_score, 'risk_score': run.risk_score, 'policy_version': run.policy_version})}\n\n"
+        yield sse(
+            "complete",
+            {
+                "status": str(run.status),
+                "security_score": run.security_score,
+                "risk_score": run.risk_score,
+                "policy_version": run.policy_version,
+            },
+        )
 
     return StreamingResponse(
         event_stream(),
@@ -618,4 +676,3 @@ def stream_analysis_events(
             "X-Accel-Buffering": "no",
         },
     )
-
