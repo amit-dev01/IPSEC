@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { NavLink, Outlet } from "react-router";
+import { Link, NavLink, Outlet } from "react-router";
 
 import { fetchReadiness } from "@/api/client";
 import { useAuth } from "@/features/auth/auth-context";
@@ -34,7 +34,10 @@ export default function Shell(): ReactNode {
         aria-label="Primary"
         className="flex w-60 shrink-0 flex-col gap-1 border-r border-[#f7f9fa]/10 bg-[#090909] p-4"
       >
-        <div className="px-2 py-3 mb-2 border-b border-[#f7f9fa]/10">
+        <Link
+          to="/"
+          className="px-2 py-3 mb-2 border-b border-[#f7f9fa]/10 block transition hover:opacity-90"
+        >
           <div className="flex items-center gap-2">
             <span className="flex h-2 w-2 rounded-full bg-[#af50ff] shadow-[0_0_8px_#af50ff]" />
             <p className="font-mono text-xs font-semibold tracking-[0.2em] text-[#f7f9fa]">
@@ -44,13 +47,13 @@ export default function Shell(): ReactNode {
           <p className="mt-1 text-[10px] font-mono uppercase tracking-wider text-[#828384]">
             Midnight Workbench
           </p>
-        </div>
+        </Link>
 
         <p className="px-3 py-1 font-mono text-[9px] uppercase tracking-[0.2em] text-[#6b6b6b]">
           TERMINAL // VIEWS
         </p>
 
-        <NavLink to="/" end className={linkClass}>
+        <NavLink to="/app" end className={linkClass}>
           Overview
         </NavLink>
         <NavLink to="/captures" className={linkClass}>
@@ -86,6 +89,14 @@ export default function Shell(): ReactNode {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Frosted Header Bar */}
         <header className="flex flex-wrap items-center gap-3 border-b border-[#f7f9fa]/10 bg-[rgba(18,16,28,0.75)] px-6 py-3.5 backdrop-blur-md">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 rounded-[6px] border border-[#f7f9fa]/15 bg-[rgba(247,249,250,0.03)] px-2.5 py-1 font-mono text-[11px] text-[#828384] transition hover:border-[#af50ff]/40 hover:text-[#f7f9fa]"
+            title="Return to Public Landing Page"
+          >
+            ← Landing Page
+          </Link>
+
           <span
             className="inline-flex items-center gap-1.5 rounded-[6px] border border-[#f7f9fa]/15 bg-[rgba(247,249,250,0.03)] px-2.5 py-1 font-mono text-[11px] text-[#828384]"
             aria-label={`Organization ${organizationId ?? ""}`}

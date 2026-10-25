@@ -37,11 +37,16 @@ export default function App(): ReactNode {
           <ToastProvider>
             <ErrorBoundary>
               <Routes>
+                {/* dope.security Landing / Terminal Home */}
+                <Route path="/" element={<LoginPage />} />
                 <Route path="/login" element={<LoginPage />} />
-                <Route path="/" element={<Shell />}>
-                  <Route index element={<OverviewPage />} />
-                  <Route path="captures" element={<CapturesPage />} />
+                <Route path="/landing" element={<LoginPage />} />
 
+                {/* Analyst Workbench under /app */}
+                <Route path="/app" element={<Shell />}>
+                  <Route index element={<OverviewPage />} />
+                  <Route path="overview" element={<OverviewPage />} />
+                  <Route path="captures" element={<CapturesPage />} />
                   <Route
                     path="captures/:captureId"
                     element={
@@ -106,6 +111,84 @@ export default function App(): ReactNode {
                   />
                   <Route
                     path="admin/live-capture"
+                    element={
+                      <RequireRole roles={["admin"]}>
+                        <Lazy>
+                          <LiveCapturePage />
+                        </Lazy>
+                      </RequireRole>
+                    }
+                  />
+                </Route>
+
+                {/* Direct routes for deep-links and bookmarks */}
+                <Route element={<Shell />}>
+                  <Route path="/overview" element={<Navigate to="/app" replace />} />
+                  <Route path="/captures" element={<CapturesPage />} />
+                  <Route
+                    path="/captures/:captureId"
+                    element={
+                      <Lazy>
+                        <CaptureDetailPage />
+                      </Lazy>
+                    }
+                  />
+                  <Route
+                    path="/analyses"
+                    element={
+                      <Lazy>
+                        <AnalysesPage />
+                      </Lazy>
+                    }
+                  />
+                  <Route
+                    path="/analyses/:analysisId"
+                    element={
+                      <Lazy>
+                        <AnalysisDetailPage />
+                      </Lazy>
+                    }
+                  />
+                  <Route
+                    path="/analyses/:analysisId/report"
+                    element={
+                      <Lazy>
+                        <ReportCenterPage />
+                      </Lazy>
+                    }
+                  />
+                  <Route
+                    path="/dataset"
+                    element={
+                      <Lazy>
+                        <RequireAction action="dataset:export">
+                          <DatasetPage />
+                        </RequireAction>
+                      </Lazy>
+                    }
+                  />
+                  <Route
+                    path="/admin"
+                    element={
+                      <RequireRole roles={["admin"]}>
+                        <Lazy>
+                          <AdminPage />
+                        </Lazy>
+                      </RequireRole>
+                    }
+                  />
+                  <Route
+                    path="/admin/audit"
+                    element={
+                      <RequireRole roles={["admin"]}>
+                        <Lazy>
+                          <AuditPage />
+                        </Lazy>
+                      </RequireRole>
+                    }
+                  />
+                  <Route
+                    path="/admin/live-capture"
                     element={
                       <RequireRole roles={["admin"]}>
                         <Lazy>

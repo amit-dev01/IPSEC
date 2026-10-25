@@ -1,5 +1,6 @@
 import type { FormEvent, ReactNode } from "react";
 import { useId, useState } from "react";
+import { Link } from "react-router";
 
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/features/auth/auth-context";
@@ -58,7 +59,7 @@ export function LoginPage(): ReactNode {
         aria-label="Landing Navigation"
         className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b border-[#f7f9fa]/10 bg-[rgba(18,16,28,0.75)] px-6 backdrop-blur-md md:px-12"
       >
-        <div className="flex items-center gap-3">
+        <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition">
           <span className="flex h-2.5 w-2.5 rounded-full bg-[#af50ff] shadow-[0_0_12px_#af50ff]" />
           <span className="font-mono text-sm tracking-[0.2em] font-semibold text-[#f7f9fa]">
             IPSEC // ANALYZER
@@ -66,21 +67,21 @@ export function LoginPage(): ReactNode {
           <span className="hidden rounded-full border border-[#f7f9fa]/15 bg-[rgba(247,249,250,0.04)] px-2.5 py-0.5 text-[10px] uppercase tracking-wider text-[#828384] md:inline-block">
             dope.terminal
           </span>
-        </div>
+        </Link>
 
         <div className="hidden items-center gap-8 text-xs uppercase tracking-[0.14em] text-[#828384] lg:flex">
-          <span className="hover:text-[#f7f9fa] transition-colors cursor-default">
+          <Link to="/captures" className="hover:text-[#f7f9fa] transition-colors">
             SSL / IKE INSPECTION
-          </span>
-          <span className="hover:text-[#f7f9fa] transition-colors cursor-default">
+          </Link>
+          <Link to="/analyses" className="hover:text-[#f7f9fa] transition-colors">
             PACKET EVIDENCE
-          </span>
-          <span className="hover:text-[#f7f9fa] transition-colors cursor-default">
+          </Link>
+          <Link to="/analyses" className="hover:text-[#f7f9fa] transition-colors">
             POLICY ENGINE
-          </span>
-          <span className="hover:text-[#f7f9fa] transition-colors cursor-default">
+          </Link>
+          <Link to="/dataset" className="hover:text-[#f7f9fa] transition-colors">
             BENCHMARK LAB
-          </span>
+          </Link>
         </div>
 
         <div className="flex items-center gap-3">
@@ -88,12 +89,12 @@ export function LoginPage(): ReactNode {
             <span className="h-1.5 w-1.5 rounded-full bg-[#af50ff] animate-pulse" />
             Demo Mode
           </span>
-          <a
-            href="#signin-card"
+          <Link
+            to="/app"
             className="rounded-[8px] border border-[#f7f9fa] bg-[#090909] px-4 py-1.5 text-xs font-medium text-[#f7f9fa] transition hover:bg-[#f7f9fa] hover:text-[#090909]"
           >
             Terminal Access
-          </a>
+          </Link>
         </div>
       </nav>
 
@@ -138,18 +139,30 @@ export function LoginPage(): ReactNode {
 
               {/* Key Capabilities Stamped List */}
               <div className="mt-8 grid grid-cols-2 gap-4 text-xs font-mono text-[#f7f9fa]">
-                <div className="rounded-[10.8px] border border-[#f7f9fa]/10 bg-[rgba(247,249,250,0.02)] p-3">
+                <Link
+                  to="/captures"
+                  className="rounded-[10.8px] border border-[#f7f9fa]/10 bg-[rgba(247,249,250,0.02)] p-3 transition hover:border-[#af50ff]/40 hover:bg-[#af50ff]/5 block"
+                >
                   <span className="text-[#af50ff]">01 /</span> IKE SA &amp; CHILD SA CIPHERS
-                </div>
-                <div className="rounded-[10.8px] border border-[#f7f9fa]/10 bg-[rgba(247,249,250,0.02)] p-3">
+                </Link>
+                <Link
+                  to="/analyses"
+                  className="rounded-[10.8px] border border-[#f7f9fa]/10 bg-[rgba(247,249,250,0.02)] p-3 transition hover:border-[#af50ff]/40 hover:bg-[#af50ff]/5 block"
+                >
                   <span className="text-[#af50ff]">02 /</span> PERFECT FORWARD SECRECY AUDIT
-                </div>
-                <div className="rounded-[10.8px] border border-[#f7f9fa]/10 bg-[rgba(247,249,250,0.02)] p-3">
+                </Link>
+                <Link
+                  to="/dataset"
+                  className="rounded-[10.8px] border border-[#f7f9fa]/10 bg-[rgba(247,249,250,0.02)] p-3 transition hover:border-[#af50ff]/40 hover:bg-[#af50ff]/5 block"
+                >
                   <span className="text-[#af50ff]">03 /</span> INTEGRITY &amp; PRF ALGORITHMS
-                </div>
-                <div className="rounded-[10.8px] border border-[#f7f9fa]/10 bg-[rgba(247,249,250,0.02)] p-3">
+                </Link>
+                <Link
+                  to="/analyses"
+                  className="rounded-[10.8px] border border-[#f7f9fa]/10 bg-[rgba(247,249,250,0.02)] p-3 transition hover:border-[#af50ff]/40 hover:bg-[#af50ff]/5 block"
+                >
                   <span className="text-[#af50ff]">04 /</span> RFC 9457 STRUCTURED FINDINGS
-                </div>
+                </Link>
               </div>
             </div>
 
@@ -323,7 +336,10 @@ export function LoginPage(): ReactNode {
 
           {/* 4-Card Comparison Route Block */}
           <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-[19.2px] border border-[#f7f9fa]/10 bg-[rgba(247,249,250,0.02)] p-6">
+            <Link
+              to="/captures"
+              className="group rounded-[19.2px] border border-[#f7f9fa]/10 bg-[rgba(247,249,250,0.02)] p-6 transition hover:border-[#af50ff]/40 hover:bg-[#af50ff]/5 block"
+            >
               <span className="font-mono text-3xl font-light text-[#af50ff]">01</span>
               <h3 className="mt-4 font-mono text-xs uppercase tracking-[0.14em] text-[#f7f9fa]">
                 CIPHER EXTRACTION
@@ -332,9 +348,15 @@ export function LoginPage(): ReactNode {
                 IKEv2 SA proposals and Child SA transforms are mapped to ENCR, PRF, INTEG, and D-H
                 attributes directly from packet traces.
               </p>
-            </div>
+              <span className="mt-4 inline-flex items-center gap-1 font-mono text-[11px] text-[#af50ff] group-hover:underline">
+                Explore Captures →
+              </span>
+            </Link>
 
-            <div className="rounded-[19.2px] border border-[#f7f9fa]/10 bg-[rgba(247,249,250,0.02)] p-6">
+            <Link
+              to="/analyses"
+              className="group rounded-[19.2px] border border-[#f7f9fa]/10 bg-[rgba(247,249,250,0.02)] p-6 transition hover:border-[#af50ff]/40 hover:bg-[#af50ff]/5 block"
+            >
               <span className="font-mono text-3xl font-light text-[#828384]">02</span>
               <h3 className="mt-4 font-mono text-xs uppercase tracking-[0.14em] text-[#f7f9fa]">
                 ZERO FABRICATION
@@ -343,9 +365,15 @@ export function LoginPage(): ReactNode {
                 Unobserved parameters (e.g. ESP tunnels without matching key exchange) are scored as
                 unknown — never falsely certified secure.
               </p>
-            </div>
+              <span className="mt-4 inline-flex items-center gap-1 font-mono text-[11px] text-[#af50ff] group-hover:underline">
+                View Analyses →
+              </span>
+            </Link>
 
-            <div className="rounded-[19.2px] border border-[#f7f9fa]/10 bg-[rgba(247,249,250,0.02)] p-6">
+            <Link
+              to="/admin/live-capture"
+              className="group rounded-[19.2px] border border-[#f7f9fa]/10 bg-[rgba(247,249,250,0.02)] p-6 transition hover:border-[#af50ff]/40 hover:bg-[#af50ff]/5 block"
+            >
               <span className="font-mono text-3xl font-light text-[#828384]">03</span>
               <h3 className="mt-4 font-mono text-xs uppercase tracking-[0.14em] text-[#f7f9fa]">
                 SANDBOXED LOCAL
@@ -354,9 +382,15 @@ export function LoginPage(): ReactNode {
                 Local headless TShark parsing with deterministic memory and packet limits. No PCAP
                 bytes ever leave your perimeter.
               </p>
-            </div>
+              <span className="mt-4 inline-flex items-center gap-1 font-mono text-[11px] text-[#af50ff] group-hover:underline">
+                Capture Agents →
+              </span>
+            </Link>
 
-            <div className="rounded-[19.2px] border border-[#f7f9fa]/10 bg-[rgba(247,249,250,0.02)] p-6">
+            <Link
+              to="/analyses"
+              className="group rounded-[19.2px] border border-[#f7f9fa]/10 bg-[rgba(247,249,250,0.02)] p-6 transition hover:border-[#af50ff]/40 hover:bg-[#af50ff]/5 block"
+            >
               <span className="font-mono text-3xl font-light text-[#828384]">04</span>
               <h3 className="mt-4 font-mono text-xs uppercase tracking-[0.14em] text-[#f7f9fa]">
                 AUDIT REPORTS
@@ -365,7 +399,10 @@ export function LoginPage(): ReactNode {
                 Generate formal compliance assessments with threat matrix mappings, risk scoring,
                 and reproducible evidence chains.
               </p>
-            </div>
+              <span className="mt-4 inline-flex items-center gap-1 font-mono text-[11px] text-[#af50ff] group-hover:underline">
+                Audit Reports →
+              </span>
+            </Link>
           </div>
         </div>
       </section>

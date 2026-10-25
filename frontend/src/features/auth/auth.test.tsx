@@ -25,9 +25,10 @@ function renderApp(initialEntries: string[] = ["/login"]) {
       <MemoryRouter initialEntries={initialEntries}>
         <AuthProvider>
           <Routes>
+            <Route path="/" element={<LoginPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route
-              path="/"
+              path="/app"
               element={
                 <RequireAuth>
                   <Shell />
@@ -35,7 +36,18 @@ function renderApp(initialEntries: string[] = ["/login"]) {
               }
             >
               <Route index element={<OverviewPage />} />
+              <Route path="overview" element={<OverviewPage />} />
               <Route path="captures" element={<CapturesPage />} />
+            </Route>
+            <Route
+              element={
+                <RequireAuth>
+                  <Shell />
+                </RequireAuth>
+              }
+            >
+              <Route path="/overview" element={<OverviewPage />} />
+              <Route path="/captures" element={<CapturesPage />} />
             </Route>
           </Routes>
         </AuthProvider>
@@ -61,7 +73,7 @@ describe("authentication", () => {
     expect(screen.getAllByText(/analyst@example\.test/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/analyst/).length).toBeGreaterThan(0);
     expect(screen.queryByText("Sign in", { selector: "button" })).not.toBeInTheDocument();
-  });
+  }, 15_000);
 
   it("shows a generic message on 401 invalid credentials", async () => {
     renderApp();

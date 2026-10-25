@@ -4,9 +4,9 @@ import type { Page } from "@playwright/test";
 const PCAP = Buffer.concat([Buffer.from([0xd4, 0xc3, 0xb2, 0xa1]), Buffer.alloc(128, 7)]);
 
 async function login(page: Page): Promise<void> {
-  // Login was removed from the website: the app opens directly in Demo Mode.
   await page.goto("/");
   await expect(page.getByText(/Demo Mode/)).toBeVisible();
+  await page.getByRole("link", { name: "Terminal Access" }).click();
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
 }
 
@@ -64,12 +64,11 @@ test.describe("analyst journeys (mock API)", () => {
     await expect(page.getByText(/Score Withheld — Insufficient Evidence/)).toBeVisible();
   });
 
-  test("4. site opens without any login (Demo Mode)", async ({ page }) => {
+  test("4. site landing page opens with Demo Mode and direct Terminal Access", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText(/Demo Mode/)).toBeVisible();
-    await expect(page.getByLabel("Email")).toHaveCount(0);
-    await expect(page.getByLabel("Password")).toHaveCount(0);
-    await page.goto("/login");
-    await expect(page.getByText(/Demo Mode/)).toBeVisible();
+    await expect(page.getByRole("link", { name: "Terminal Access" })).toBeVisible();
+    await page.getByRole("link", { name: "Terminal Access" }).click();
+    await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
   });
 });

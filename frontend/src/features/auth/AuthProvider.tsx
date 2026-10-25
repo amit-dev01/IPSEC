@@ -21,7 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
     // then leave the protected area. Zero previous-tenant data remains.
     endSession();
     queryClient.clear();
-    void navigate("/login", { replace: true });
+    void navigate("/", { replace: true });
   }, [navigate, queryClient]);
 
   // Any 401 anywhere in the app resets the session exactly like logout.
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
         try {
           const user = await fetchMe();
           startSession(tokenResponse.access_token, user);
-          void navigate("/", { replace: true });
+          void navigate("/app", { replace: true });
           return;
         } catch {
           const user = {
@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
             role,
           };
           startSession(tokenResponse.access_token, user);
-          void navigate("/", { replace: true });
+          void navigate("/app", { replace: true });
           return;
         }
       } catch (error) {
@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
           role,
         };
         startSession(fakeToken, fakeUser);
-        void navigate("/", { replace: true });
+        void navigate("/app", { replace: true });
       }
     },
     [navigate, queryClient],
