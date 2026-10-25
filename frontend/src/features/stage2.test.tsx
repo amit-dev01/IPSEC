@@ -128,6 +128,63 @@ describe("capture vault", () => {
     expect(screen.getByRole("button", { name: "Start upload" })).toBeDisabled();
   });
 
+  it("keeps the modal open showing the authoritative server SHA-256 after upload", async () => {
+    class OkXHR {
+      upload: {
+        onprogress:
+          ((e: { loaded: number; total: number; lengthComputable: boolean }) => void) | null;
+      } = { onprogress: null };
+      onload: (() => void) | null = null;
+      onabort: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      ontimeout: (() => void) | null = null;
+      status = 201;
+      responseText = JSON.stringify({
+        id: "cap-up-1",
+        organization_id: "org",
+        display_name: "ok.pcapng",
+        sha256: "c".repeat(64),
+        size_bytes: 68,
+        format: "pcapng",
+        state: "available",
+        uploaded_at: "2026-10-24T00:00:00Z",
+      });
+      responseType = "";
+      timeout = 0;
+      open(): void {
+        return;
+      }
+      setRequestHeader(): void {
+        return;
+      }
+      getResponseHeader(): string | null {
+        return null;
+      }
+      abort(): void {
+        this.onabort?.();
+      }
+      send(): void {
+        window.setTimeout(() => this.onload?.(), 0);
+      }
+    }
+    vi.stubGlobal("XMLHttpRequest", OkXHR);
+    renderApp(["/captures"], "analyst");
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Upload Capture" }));
+    const head = new Uint8Array([0x0a, 0x0d, 0x0d, 0x0a, ...new Array(64).fill(0)]);
+    await user.upload(
+      screen.getByLabelText("Choose a capture file"),
+      new File([head], "ok.pcapng"),
+    );
+    await user.click(screen.getByRole("button", { name: "Start upload" }));
+    expect(await screen.findByText(/server-computed SHA-256/)).toBeInTheDocument();
+    expect(screen.getByText("c".repeat(64))).toBeInTheDocument();
+    // Modal stays open until the user dismisses it.
+    await user.click(screen.getByRole("button", { name: "Done" }));
+    expect(screen.queryByText(/server-computed SHA-256/)).not.toBeInTheDocument();
+    vi.unstubAllGlobals();
+  });
+
   it("reports progress and surfaces a server 413 for an oversized upload", async () => {
     setUploadSizeLimit(10);
     class FakeXHR {
