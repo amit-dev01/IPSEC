@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { Link, useParams } from "react-router";
 
 import { ApiError, downloadReport, getAnalysis, retryAnalysis } from "@/api/client";
@@ -25,9 +25,11 @@ import type { Evidence } from "./evidence-lib";
 import AssessmentTab from "./AssessmentTab";
 import InspectorTab from "./InspectorTab";
 import TrafficTab from "./TrafficTab";
+import ThreatTimeline from "./ThreatTimeline";
+const CryptoGraph3D = lazy(() => import("./CryptoGraph3D"));
 
 type TabId =
-  "overview" | "assessment" | "inspector" | "traffic" | "findings" | "evidence" | "report";
+  "overview" | "assessment" | "inspector" | "traffic" | "findings" | "evidence" | "report" | "crypto3d" | "timeline";
 
 function PollStatus({ status }: { status: string }): ReactNode {
   if (status === "queued")
@@ -104,6 +106,8 @@ export default function AnalysisDetailPage(): ReactNode {
   const tabs: { id: TabId; label: string }[] = [
     { id: "overview", label: "Overview" },
     { id: "assessment", label: "Security Assessment & Threat Matrix" },
+    { id: "crypto3d", label: "3D Crypto Graph" },
+    { id: "timeline", label: "Threat Timeline" },
     { id: "inspector", label: "Protocol & Security Inspector" },
     { id: "traffic", label: "AI Traffic Inference & Metadata" },
     { id: "findings", label: `Findings (${detail.findings.length})` },
@@ -225,6 +229,20 @@ export default function AnalysisDetailPage(): ReactNode {
           className="py-4"
         >
           <AssessmentTab detail={detail} />
+        </div>
+      )}
+
+      {tab === "crypto3d" && (
+        <div role="tabpanel" id="panel-crypto3d" aria-labelledby="tab-crypto3d" className="py-4">
+          <Suspense fallback={<p className="text-sm text-ink-muted">Loading 3D engine…</p>}>
+            <CryptoGraph3D detail={detail} />
+          </Suspense>
+        </div>
+      )}
+
+      {tab === "timeline" && (
+        <div role="tabpanel" id="panel-timeline" aria-labelledby="tab-timeline" className="py-4">
+          <ThreatTimeline detail={detail} />
         </div>
       )}
 

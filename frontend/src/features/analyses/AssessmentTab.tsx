@@ -5,6 +5,7 @@ import type { AnalysisDetail } from "@/api/client";
 import { ConfidenceMeter, ProvenanceBadge, UnknownValue } from "@/components/epistemic";
 import { ScoreBar, SeverityBadge } from "@/components/badges";
 import type { Severity } from "@/components/badges";
+import { ScoreRadial } from "@/components/ScoreRadial";
 
 import {
   DOMAINS,
@@ -81,6 +82,29 @@ export default function AssessmentTab({ detail }: { detail: AnalysisDetail }): R
   );
   const mode = integrityMode(selectedTransforms);
 
+  /**
+   * Per-domain scores: map domainState → approximate 0–100 values.
+   * strong=90, exposure=60, weak=25, unknown=null (withheld).
+   * These are front-end display approximations derived from packet-observed
+   * evidence — they are NOT the authoritative backend scores.
+   */
+  const DOMAIN_STATE_SCORE: Record<string, number | null> = {
+    strong: 90,
+    exposure: 60,
+    weak: 25,
+    unknown: null,
+  };
+
+  const domainScores = useMemo(
+    () =>
+      DOMAINS.map((d) => ({
+        label: d.label,
+        value: DOMAIN_STATE_SCORE[domainState(detail, d.id)] ?? null,
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [detail],
+  );
+
   return (
     <div>
       <div className="flex flex-wrap items-center gap-3">
@@ -98,12 +122,24 @@ export default function AssessmentTab({ detail }: { detail: AnalysisDetail }): R
         </span>
       </div>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-3">
+      {/* ── Score section: Radial chart + Confidence meters ── */}
+      <div className="mt-4 grid gap-4 md:grid-cols-[auto_1fr_auto]">
+        {/* Left: Radial donut */}
+        <div className="flex items-start justify-center rounded border border-line bg-surface-sunken p-4">
+          <ScoreRadial
+            securityScore={detail.security_score}
+            riskScore={detail.risk_score}
+            domains={domainScores}
+            coverage={coverage}
+          />
+        </div>
+
+        {/* Center: Withheld notice or score breakdown */}
         {scoresWithheld ? (
           <div
             role="note"
             aria-label="Score withheld — insufficient evidence"
-            className="rounded border border-sev-medium bg-surface-sunken p-3 md:col-span-2"
+            className="rounded border border-sev-medium bg-surface-sunken p-4"
           >
             <p className="font-semibold">Score Withheld — Insufficient Evidence</p>
             <p className="mt-1 text-sm">
@@ -118,30 +154,26 @@ export default function AssessmentTab({ detail }: { detail: AnalysisDetail }): R
             <p className="tnum mt-1 text-sm">Evidence coverage so far: {coverage}%</p>
           </div>
         ) : (
-          <>
-            <div className="rounded border border-line p-3">
-              <ScoreBar
-                label="Risk score (0–100, higher = higher risk)"
-                value={detail.risk_score}
-                max={100}
-              />
-              <p className="tnum mt-2 text-sm">
-                Evidence Coverage: <strong>{coverage}%</strong>
-              </p>
-            </div>
-            <div className="rounded border border-line p-3">
-              <ScoreBar
-                label="Security score (0–100, higher = stronger posture)"
-                value={detail.security_score}
-                max={100}
-              />
-              <p className="tnum mt-2 text-sm">
-                Evidence Coverage: <strong>{coverage}%</strong>
-              </p>
-            </div>
-          </>
+          <div className="space-y-3 rounded border border-line p-4">
+            <ScoreBar
+              label="Risk score (0–100, higher = higher risk)"
+              value={detail.risk_score}
+              max={100}
+            />
+            <div className="my-1 border-t border-line" />
+            <ScoreBar
+              label="Security score (0–100, higher = stronger posture)"
+              value={detail.security_score}
+              max={100}
+            />
+            <p className="tnum text-sm text-ink-muted">
+              Evidence coverage: <strong className="text-ink">{coverage}%</strong>
+            </p>
+          </div>
         )}
-        <div className="space-y-3 rounded border border-line p-3">
+
+        {/* Right: Confidence meters */}
+        <div className="space-y-3 rounded border border-line p-4">
           <ConfidenceMeter value={protocolConfidence} kind="protocol" />
           <ConfidenceMeter value={mlConfidence} kind="ml_traffic" />
         </div>

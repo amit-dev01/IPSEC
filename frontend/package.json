@@ -20,11 +20,14 @@
     "api:generate": "openapi-typescript openapi.json -o src/api/schema.d.ts"
   },
   "dependencies": {
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.2",
     "@tanstack/react-query": "5.104.5",
     "openapi-fetch": "0.17.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "react-router": "8.5.0"
+    "react-router": "8.5.0",
+    "three": "^0.186.1"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
