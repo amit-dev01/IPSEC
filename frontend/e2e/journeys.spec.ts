@@ -27,7 +27,7 @@ test.describe("analyst journeys (mock API)", () => {
     await expect(page.getByText("b".repeat(64))).toBeVisible();
     await page.getByRole("button", { name: "Done" }).click();
 
-    await page.getByRole("link", { name: "journey.pcap" }).click();
+    await page.getByRole("link", { name: "journey.pcap" }).first().click();
     await page.getByRole("button", { name: "Run Security Analysis" }).click();
     await expect(page.getByText(/Stage: queued/)).toBeVisible();
     await expect(page.getByLabel("Status: succeeded")).toBeVisible({ timeout: 20_000 });

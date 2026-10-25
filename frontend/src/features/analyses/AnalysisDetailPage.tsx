@@ -441,7 +441,7 @@ export default function AnalysisDetailPage(): ReactNode {
                     )
                   }
                 >
-                  Download Server {format.toUpperCase()}
+                  Download {format.toUpperCase()} report
                 </button>
               ))}
             </div>
