@@ -1,12 +1,7 @@
 import type { AnalysisDetail } from "@/api/client";
 
 export type RfcDomain =
-  | "Key Exchange"
-  | "Encryption"
-  | "Integrity"
-  | "Identity"
-  | "Anti-Replay"
-  | "Architecture";
+  "Key Exchange" | "Encryption" | "Integrity" | "Identity" | "Anti-Replay" | "Architecture";
 
 export type RfcRequirement = "MUST" | "SHOULD" | "SHOULD NOT" | "MUST NOT";
 
@@ -58,7 +53,8 @@ export const RFC_CATALOG: RfcStandard[] = [
     rfcUrl: "https://www.rfc-editor.org/rfc/rfc7296",
     requirement: "MUST",
     nistRef: "NIST SP 800-77r1 §3.1",
-    description: "Modern key exchange framework with 4-message exchange, DoS cookies, and built-in NAT-T.",
+    description:
+      "Modern key exchange framework with 4-message exchange, DoS cookies, and built-in NAT-T.",
     evaluator: (detail) => {
       const v = findFact(detail, "ike.version");
       const versions = Array.isArray(v) ? v.map(String) : v ? [String(v)] : [];
@@ -94,7 +90,8 @@ export const RFC_CATALOG: RfcStandard[] = [
     rfcUrl: "https://www.rfc-editor.org/rfc/rfc2409",
     requirement: "MUST NOT",
     nistRef: "NIST SP 800-77r1 (Disallowed)",
-    description: "Obsolete protocol subject to aggressive mode hash extraction, DoS amplification, and complex state machines.",
+    description:
+      "Obsolete protocol subject to aggressive mode hash extraction, DoS amplification, and complex state machines.",
     evaluator: (detail) => {
       const v = findFact(detail, "ike.version");
       const versions = Array.isArray(v) ? v.map(String) : v ? [String(v)] : [];
@@ -103,14 +100,16 @@ export const RFC_CATALOG: RfcStandard[] = [
           observed: true,
           observedValue: "IKEv1 Active",
           verdict: "non-compliant",
-          notes: "CRITICAL: Obsolete IKEv1 in use. Vulnerable to pre-shared key offline dictionary attacks.",
+          notes:
+            "CRITICAL: Obsolete IKEv1 in use. Vulnerable to pre-shared key offline dictionary attacks.",
         };
       }
       return {
         observed: versions.length > 0,
         observedValue: versions.length > 0 ? "Not Used" : undefined,
         verdict: versions.length > 0 ? "compliant" : "not-observed",
-        notes: versions.length > 0 ? "No legacy IKEv1 packets detected." : "No IKE traffic captured.",
+        notes:
+          versions.length > 0 ? "No legacy IKEv1 packets detected." : "No IKE traffic captured.",
       };
     },
   },
@@ -123,7 +122,8 @@ export const RFC_CATALOG: RfcStandard[] = [
     rfcUrl: "https://www.rfc-editor.org/rfc/rfc4303",
     requirement: "MUST",
     nistRef: "NIST SP 800-77r1 §2.1",
-    description: "Provides packet confidentiality, data integrity, anti-replay, and traffic-flow confidentiality.",
+    description:
+      "Provides packet confidentiality, data integrity, anti-replay, and traffic-flow confidentiality.",
     evaluator: (detail) => {
       const protos = findFact(detail, "ipsec.protocols_observed");
       const protoList = Array.isArray(protos) ? protos.map(String) : [];
@@ -151,7 +151,8 @@ export const RFC_CATALOG: RfcStandard[] = [
     rfcUrl: "https://www.rfc-editor.org/rfc/rfc4106",
     requirement: "MUST",
     nistRef: "NIST SP 800-77r1 §3.2.1",
-    description: "AEAD mode providing high-speed hardware-accelerated confidentiality and integrity in a single pass.",
+    description:
+      "AEAD mode providing high-speed hardware-accelerated confidentiality and integrity in a single pass.",
     evaluator: (detail) => {
       const selectedEnc = findFact(detail, "ike_sa.selected.encryption_algorithm");
       const offeredEnc = findFact(detail, "ike_sa.offered.encryption_algorithms");
@@ -189,7 +190,8 @@ export const RFC_CATALOG: RfcStandard[] = [
     rfcUrl: "https://www.rfc-editor.org/rfc/rfc8221#section-5",
     requirement: "MUST NOT",
     nistRef: "NIST SP 800-131A Rev. 2",
-    description: "64-bit block size vulnerable to Sweet32 collision attacks (CVE-2016-2183). Officially retired by NIST.",
+    description:
+      "64-bit block size vulnerable to Sweet32 collision attacks (CVE-2016-2183). Officially retired by NIST.",
     evaluator: (detail) => {
       const offered = String(findFact(detail, "ike_sa.offered.encryption_algorithms") || "");
       const selected = String(findFact(detail, "ike_sa.selected.encryption_algorithm") || "");
@@ -206,7 +208,10 @@ export const RFC_CATALOG: RfcStandard[] = [
         observed: combined.trim().length > 0,
         observedValue: combined.trim().length > 0 ? "Not Offered" : undefined,
         verdict: combined.trim().length > 0 ? "compliant" : "not-observed",
-        notes: combined.trim().length > 0 ? "3DES rejected / absent." : "Encryption transforms not observable.",
+        notes:
+          combined.trim().length > 0
+            ? "3DES rejected / absent."
+            : "Encryption transforms not observable.",
       };
     },
   },
@@ -219,9 +224,12 @@ export const RFC_CATALOG: RfcStandard[] = [
     rfcUrl: "https://www.rfc-editor.org/rfc/rfc8221#section-5",
     requirement: "MUST NOT",
     nistRef: "NIST FIPS 46-3 (Withdrawn)",
-    description: "56-bit effective key length can be brute-forced in under 24 hours with commodity hardware.",
+    description:
+      "56-bit effective key length can be brute-forced in under 24 hours with commodity hardware.",
     evaluator: (detail) => {
-      const offered = String(findFact(detail, "ike_sa.offered.encryption_algorithms") || "").toLowerCase();
+      const offered = String(
+        findFact(detail, "ike_sa.offered.encryption_algorithms") || "",
+      ).toLowerCase();
       if (/\bdes\b/.test(offered) && !offered.includes("3des")) {
         return {
           observed: true,
@@ -234,7 +242,10 @@ export const RFC_CATALOG: RfcStandard[] = [
         observed: offered.length > 0,
         observedValue: offered.length > 0 ? "Not Offered" : undefined,
         verdict: offered.length > 0 ? "compliant" : "not-observed",
-        notes: offered.length > 0 ? "No single DES proposals found." : "Encryption proposals not observable.",
+        notes:
+          offered.length > 0
+            ? "No single DES proposals found."
+            : "Encryption proposals not observable.",
       };
     },
   },
@@ -252,7 +263,12 @@ export const RFC_CATALOG: RfcStandard[] = [
       const selected = String(findFact(detail, "ike_sa.selected.integrity_algorithm") || "");
       const offered = String(findFact(detail, "ike_sa.offered.integrity_algorithms") || "");
       const integ = `${selected} ${offered}`.toLowerCase();
-      if (integ.includes("sha256") || integ.includes("sha384") || integ.includes("sha512") || integ.includes("sha-2")) {
+      if (
+        integ.includes("sha256") ||
+        integ.includes("sha384") ||
+        integ.includes("sha512") ||
+        integ.includes("sha-2")
+      ) {
         return {
           observed: true,
           observedValue: selected || offered || "HMAC-SHA-256",
@@ -277,10 +293,15 @@ export const RFC_CATALOG: RfcStandard[] = [
     rfcUrl: "https://www.rfc-editor.org/rfc/rfc8247",
     requirement: "MUST NOT",
     nistRef: "NIST SP 800-131A (Deprecation)",
-    description: "SHA-1 collision attacks (SHAttered, Shambles) render SHA-1 unsuitable for cryptographic guarantees.",
+    description:
+      "SHA-1 collision attacks (SHAttered, Shambles) render SHA-1 unsuitable for cryptographic guarantees.",
     evaluator: (detail) => {
-      const selected = String(findFact(detail, "ike_sa.selected.integrity_algorithm") || "").toLowerCase();
-      const offered = String(findFact(detail, "ike_sa.offered.integrity_algorithms") || "").toLowerCase();
+      const selected = String(
+        findFact(detail, "ike_sa.selected.integrity_algorithm") || "",
+      ).toLowerCase();
+      const offered = String(
+        findFact(detail, "ike_sa.offered.integrity_algorithms") || "",
+      ).toLowerCase();
       if (selected.includes("sha1") || offered.includes("sha1") || selected.includes("sha-1")) {
         return {
           observed: true,
@@ -306,7 +327,8 @@ export const RFC_CATALOG: RfcStandard[] = [
     rfcUrl: "https://www.rfc-editor.org/rfc/rfc8247",
     requirement: "MUST",
     nistRef: "NIST SP 800-77r1 / CNSA 2.0",
-    description: "ECDH Curve P-256 (Group 19), Curve P-384 (Group 20), or 2048-bit MODP (Group 14) minimum for 112+ bit security.",
+    description:
+      "ECDH Curve P-256 (Group 19), Curve P-384 (Group 20), or 2048-bit MODP (Group 14) minimum for 112+ bit security.",
     evaluator: (detail) => {
       const selectedDh = String(findFact(detail, "ike_sa.selected.dh_group") || "");
       const offeredDh = String(findFact(detail, "ike_sa.offered.dh_groups") || "");
@@ -344,7 +366,8 @@ export const RFC_CATALOG: RfcStandard[] = [
     rfcUrl: "https://www.rfc-editor.org/rfc/rfc6989",
     requirement: "MUST NOT",
     nistRef: "NIST SP 800-131A (Transitioned)",
-    description: "1024-bit primes can be solved by nation-state actors via Number Field Sieve (Logjam attack).",
+    description:
+      "1024-bit primes can be solved by nation-state actors via Number Field Sieve (Logjam attack).",
     evaluator: (detail) => {
       const selectedDh = String(findFact(detail, "ike_sa.selected.dh_group") || "");
       const offeredDh = String(findFact(detail, "ike_sa.offered.dh_groups") || "");
@@ -374,7 +397,8 @@ export const RFC_CATALOG: RfcStandard[] = [
     rfcUrl: "https://www.rfc-editor.org/rfc/rfc7296#section-2.12",
     requirement: "SHOULD",
     nistRef: "NIST SP 800-77r1 §3.1",
-    description: "Ensures compromise of long-term IKE keys does not compromise past encrypted session payloads.",
+    description:
+      "Ensures compromise of long-term IKE keys does not compromise past encrypted session payloads.",
     evaluator: (detail) => {
       // In passive observation, PFS is verified if CREATE_CHILD_SA exchange includes KE payload
       const exchanges = findFact(detail, "ike.exchange_types_observed");
@@ -390,7 +414,8 @@ export const RFC_CATALOG: RfcStandard[] = [
       return {
         observed: false,
         verdict: "not-observed",
-        notes: "Child SA rekey not captured; PFS configuration not observable without CREATE_CHILD_SA trace.",
+        notes:
+          "Child SA rekey not captured; PFS configuration not observable without CREATE_CHILD_SA trace.",
       };
     },
   },
@@ -403,7 +428,8 @@ export const RFC_CATALOG: RfcStandard[] = [
     rfcUrl: "https://www.rfc-editor.org/rfc/rfc4303#section-3.4.3",
     requirement: "MUST",
     nistRef: "NIST SP 800-77r1 §2.1",
-    description: "Rejects duplicated or old sequence numbers to protect against packet reinjection and replay attacks.",
+    description:
+      "Rejects duplicated or old sequence numbers to protect against packet reinjection and replay attacks.",
     evaluator: (detail) => {
       const windowFact = findFact(detail, "esp.sequence_window_observed");
       if (windowFact && typeof windowFact === "object") {
@@ -411,7 +437,8 @@ export const RFC_CATALOG: RfcStandard[] = [
           observed: true,
           observedValue: "Active ESP Sequences",
           verdict: "compliant",
-          notes: "ESP sequence numbers incrementing normally without catastrophic duplicate anomalies.",
+          notes:
+            "ESP sequence numbers incrementing normally without catastrophic duplicate anomalies.",
         };
       }
       return {
@@ -430,7 +457,8 @@ export const RFC_CATALOG: RfcStandard[] = [
     rfcUrl: "https://www.rfc-editor.org/rfc/rfc3948",
     requirement: "SHOULD",
     nistRef: "NIST SP 800-77r1 §2.3",
-    description: "Encapsulates ESP packets inside UDP port 4500 to allow IPsec tunnels to traverse NAT gateways.",
+    description:
+      "Encapsulates ESP packets inside UDP port 4500 to allow IPsec tunnels to traverse NAT gateways.",
     evaluator: (detail) => {
       const natt = findFact(detail, "ike.nat_traversal_observed");
       if (natt === true) {

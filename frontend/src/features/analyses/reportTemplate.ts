@@ -73,7 +73,8 @@ export function buildComplianceJson(detail: AnalysisDetail): ComplianceJsonRepor
   let verdict = "SATISFACTORY";
   if (detail.security_score !== null) {
     if (detail.security_score < 50 || criticals > 0) verdict = "NON-COMPLIANT / HIGH RISK";
-    else if (detail.security_score < 75 || highs > 0) verdict = "PARTIAL COMPLIANCE / REVIEW REQUIRED";
+    else if (detail.security_score < 75 || highs > 0)
+      verdict = "PARTIAL COMPLIANCE / REVIEW REQUIRED";
     else verdict = "ENTERPRISE COMPLIANT";
   }
 

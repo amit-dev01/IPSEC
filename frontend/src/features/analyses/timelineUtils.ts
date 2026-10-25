@@ -34,10 +34,7 @@ export interface TimelineEvent {
 }
 
 function hasFactWithValue(detail: AnalysisDetail, factName: string): boolean {
-  const all = [
-    ...detail.packet_observed_facts,
-    ...detail.supplied_facts,
-  ];
+  const all = [...detail.packet_observed_facts, ...detail.supplied_facts];
   const item = all.find((e) => e.fact_name === factName);
   if (!item) return false;
   return item.fact_value !== null && item.fact_value !== undefined && item.fact_value !== "unknown";
@@ -80,7 +77,9 @@ export function buildTimeline(detail: AnalysisDetail): TimelineEvent[] {
   events.push({
     id: "ike-sa-init-resp",
     label: "IKE_SA_INIT reply",
-    sublabel: hasTransforms ? `Transforms: ${transforms.slice(0, 50)}` : "Transform selection unknown",
+    sublabel: hasTransforms
+      ? `Transforms: ${transforms.slice(0, 50)}`
+      : "Transform selection unknown",
     kind: "ike_sa_init",
     direction: "resp_to_init",
     inferred: !hasTransforms,
@@ -112,7 +111,9 @@ export function buildTimeline(detail: AnalysisDetail): TimelineEvent[] {
   events.push({
     id: "ike-auth-resp",
     label: "IKE_AUTH reply",
-    sublabel: hasEsp ? "SA established ✓ — ESP SPI assigned" : "Auth complete (ESP SPI not observed)",
+    sublabel: hasEsp
+      ? "SA established ✓ — ESP SPI assigned"
+      : "Auth complete (ESP SPI not observed)",
     kind: "ike_auth",
     direction: "resp_to_init",
     inferred: !hasEsp,
@@ -127,7 +128,9 @@ export function buildTimeline(detail: AnalysisDetail): TimelineEvent[] {
       sublabel: [
         hasPfs ? "PFS enabled" : null,
         lifetimeFact !== null ? `Lifetime: ${String(lifetimeFact)}` : null,
-      ].filter(Boolean).join(" · "),
+      ]
+        .filter(Boolean)
+        .join(" · "),
       kind: "create_child_sa",
       direction: "init_to_resp",
       inferred: true,

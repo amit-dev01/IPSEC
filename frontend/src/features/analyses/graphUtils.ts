@@ -33,10 +33,7 @@ export interface HandshakeGraph {
   transforms: string | null;
 }
 
-function factValue(
-  detail: AnalysisDetail,
-  factName: string,
-): unknown | undefined {
+function factValue(detail: AnalysisDetail, factName: string): unknown | undefined {
   const all = [
     ...detail.packet_observed_facts,
     ...detail.supplied_facts,
@@ -56,7 +53,7 @@ function stringify(v: unknown): string | null {
  */
 function parseTransforms(raw: string | null): string[] {
   if (!raw) return [];
-  const cleaned = raw.replace(/^"|"$/g, "").replace(/\\"/g, "\"");
+  const cleaned = raw.replace(/^"|"$/g, "").replace(/\\"/g, '"');
   return cleaned
     .split(/[/,]/)
     .map((s) => s.trim())
@@ -64,8 +61,17 @@ function parseTransforms(raw: string | null): string[] {
 }
 
 const WEAK_PATTERNS = [
-  /3DES/i, /DES\b/i, /RC4/i, /MD5/i, /SHA-1\b/i, /SHA1\b/i,
-  /DH-[12]\b/i, /GROUP_[12]\b/i, /NULL/i, /MODP768/i, /MODP1024/i,
+  /3DES/i,
+  /DES\b/i,
+  /RC4/i,
+  /MD5/i,
+  /SHA-1\b/i,
+  /SHA1\b/i,
+  /DH-[12]\b/i,
+  /GROUP_[12]\b/i,
+  /NULL/i,
+  /MODP768/i,
+  /MODP1024/i,
 ];
 
 function isWeakAlgorithm(alg: string): boolean {
@@ -84,8 +90,20 @@ export function buildHandshakeGraph(detail: AnalysisDetail): HandshakeGraph {
     responderLabel = String(endpoints[1]).split("/")[0] ?? "Responder";
   }
 
-  nodes.push({ id: "initiator", label: initiatorLabel, kind: "initiator", position: [-3.5, 0, 0], detail: "IKEv2 Initiator" });
-  nodes.push({ id: "responder", label: responderLabel, kind: "responder", position: [3.5, 0, 0], detail: "IKEv2 Responder" });
+  nodes.push({
+    id: "initiator",
+    label: initiatorLabel,
+    kind: "initiator",
+    position: [-3.5, 0, 0],
+    detail: "IKEv2 Initiator",
+  });
+  nodes.push({
+    id: "responder",
+    label: responderLabel,
+    kind: "responder",
+    position: [3.5, 0, 0],
+    detail: "IKEv2 Responder",
+  });
 
   const ikeVersion = stringify(factValue(detail, "ike.version"));
   const rawTransforms = stringify(factValue(detail, "ike_sa.selected_transforms"));
@@ -111,12 +129,36 @@ export function buildHandshakeGraph(detail: AnalysisDetail): HandshakeGraph {
     const id = `accepted-${i}`;
     const angle = angleStep * (i + 1) - Math.PI / 2;
     const r = 2.2;
-    nodes.push({ id, label: alg, kind: "proposal", position: [Math.cos(angle) * r, Math.sin(angle) * r + 1.5, 0], detail: isWeakAlgorithm(alg) ? "⚠ Weak — consider upgrading" : "✓ Accepted" });
-    edges.push({ id: `e-acc-init-${i}`, from: "initiator", to: id, kind: isWeakAlgorithm(alg) ? "weak" : "accepted", label: "proposed" });
-    edges.push({ id: `e-acc-resp-${i}`, from: id, to: "responder", kind: isWeakAlgorithm(alg) ? "weak" : "accepted", label: "selected" });
+    nodes.push({
+      id,
+      label: alg,
+      kind: "proposal",
+      position: [Math.cos(angle) * r, Math.sin(angle) * r + 1.5, 0],
+      detail: isWeakAlgorithm(alg) ? "⚠ Weak — consider upgrading" : "✓ Accepted",
+    });
+    edges.push({
+      id: `e-acc-init-${i}`,
+      from: "initiator",
+      to: id,
+      kind: isWeakAlgorithm(alg) ? "weak" : "accepted",
+      label: "proposed",
+    });
+    edges.push({
+      id: `e-acc-resp-${i}`,
+      from: id,
+      to: "responder",
+      kind: isWeakAlgorithm(alg) ? "weak" : "accepted",
+      label: "selected",
+    });
   });
 
-  edges.push({ id: "e-ike-sa", from: "initiator", to: "responder", kind: "accepted", label: "IKE SA" });
+  edges.push({
+    id: "e-ike-sa",
+    from: "initiator",
+    to: "responder",
+    kind: "accepted",
+    label: "IKE SA",
+  });
 
   const shownRejected = rejectedAlgs.slice(0, 4);
   const rejStep = shownRejected.length > 0 ? Math.PI / (shownRejected.length + 1) : Math.PI / 4;
@@ -124,7 +166,13 @@ export function buildHandshakeGraph(detail: AnalysisDetail): HandshakeGraph {
     const id = `rejected-${i}`;
     const angle = rejStep * (i + 1) - Math.PI / 2;
     const r = 1.8;
-    nodes.push({ id, label: alg, kind: "proposal", position: [Math.cos(angle) * r, Math.sin(angle) * r - 1.8, 0], detail: "✗ Not selected by responder" });
+    nodes.push({
+      id,
+      label: alg,
+      kind: "proposal",
+      position: [Math.cos(angle) * r, Math.sin(angle) * r - 1.8, 0],
+      detail: "✗ Not selected by responder",
+    });
     edges.push({ id: `e-rej-${i}`, from: "initiator", to: id, kind: "rejected", label: "offered" });
   });
 
@@ -135,10 +183,23 @@ export function buildHandshakeGraph(detail: AnalysisDetail): HandshakeGraph {
     label: espSpi !== undefined && espSpi !== null ? "ESP Child SA" : "Child SA",
     kind: "child_sa",
     position: [0, -3.2, 0],
-    detail: hasPfs === true ? "PFS enabled ✓" : hasPfs === false ? "PFS disabled ⚠" : "PFS: unknown",
+    detail:
+      hasPfs === true ? "PFS enabled ✓" : hasPfs === false ? "PFS disabled ⚠" : "PFS: unknown",
   });
-  edges.push({ id: "e-child-init", from: "initiator", to: "child_sa", kind: "accepted", label: "CREATE_CHILD_SA" });
-  edges.push({ id: "e-child-resp", from: "responder", to: "child_sa", kind: "accepted", label: "TS negotiated" });
+  edges.push({
+    id: "e-child-init",
+    from: "initiator",
+    to: "child_sa",
+    kind: "accepted",
+    label: "CREATE_CHILD_SA",
+  });
+  edges.push({
+    id: "e-child-resp",
+    from: "responder",
+    to: "child_sa",
+    kind: "accepted",
+    label: "TS negotiated",
+  });
 
   return { nodes, edges, ikeVersion, transforms };
 }

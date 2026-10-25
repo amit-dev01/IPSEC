@@ -48,13 +48,7 @@ function scoreLabel(value: number | null): string {
 }
 
 /** Compute SVG arc path for a partial circle (donut ring segment). */
-function arcPath(
-  cx: number,
-  cy: number,
-  r: number,
-  startAngle: number,
-  endAngle: number,
-): string {
+function arcPath(cx: number, cy: number, r: number, startAngle: number, endAngle: number): string {
   const toRad = (deg: number) => ((deg - 90) * Math.PI) / 180;
   const x1 = cx + r * Math.cos(toRad(startAngle));
   const y1 = cy + r * Math.sin(toRad(startAngle));
@@ -75,11 +69,11 @@ const DOMAIN_STROKE = 6; // domain ring stroke width
 // Six domain ring radii (inside the donut)
 const DOMAIN_RADII = [
   OUTER_R - STROKE_W / 2 - DOMAIN_GAP - DOMAIN_STROKE / 2,
-  OUTER_R - STROKE_W / 2 - DOMAIN_GAP * 2 - DOMAIN_STROKE * 3 / 2,
-  OUTER_R - STROKE_W / 2 - DOMAIN_GAP * 3 - DOMAIN_STROKE * 5 / 2,
-  OUTER_R - STROKE_W / 2 - DOMAIN_GAP * 4 - DOMAIN_STROKE * 7 / 2,
-  OUTER_R - STROKE_W / 2 - DOMAIN_GAP * 5 - DOMAIN_STROKE * 9 / 2,
-  OUTER_R - STROKE_W / 2 - DOMAIN_GAP * 6 - DOMAIN_STROKE * 11 / 2,
+  OUTER_R - STROKE_W / 2 - DOMAIN_GAP * 2 - (DOMAIN_STROKE * 3) / 2,
+  OUTER_R - STROKE_W / 2 - DOMAIN_GAP * 3 - (DOMAIN_STROKE * 5) / 2,
+  OUTER_R - STROKE_W / 2 - DOMAIN_GAP * 4 - (DOMAIN_STROKE * 7) / 2,
+  OUTER_R - STROKE_W / 2 - DOMAIN_GAP * 5 - (DOMAIN_STROKE * 9) / 2,
+  OUTER_R - STROKE_W / 2 - DOMAIN_GAP * 6 - (DOMAIN_STROKE * 11) / 2,
 ];
 
 function AnimatedArc({
@@ -303,10 +297,7 @@ export function ScoreRadial({
 
       {/* Domain legend */}
       {shownDomains.length > 0 && (
-        <ol
-          className="w-full space-y-1.5"
-          aria-label="Per-domain score breakdown"
-        >
+        <ol className="w-full space-y-1.5" aria-label="Per-domain score breakdown">
           {shownDomains.map((d, i) => {
             const color = scoreColor(d.value);
             const ringColor = DOMAIN_RADII[i] !== undefined ? color : "#474747";
@@ -334,8 +325,7 @@ export function ScoreRadial({
 
       {/* Evidence coverage */}
       <p className="text-xs text-ink-muted">
-        Evidence coverage:{" "}
-        <strong className="text-ink tnum">{coverage}%</strong>
+        Evidence coverage: <strong className="text-ink tnum">{coverage}%</strong>
       </p>
     </div>
   );

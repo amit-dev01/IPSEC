@@ -80,7 +80,9 @@ function TimelineRow({
       aria-label={`${event.label}: ${event.sublabel ?? ""}`}
       aria-pressed={selected}
       onClick={onSelect}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSelect(); }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onSelect();
+      }}
       style={{ cursor: "pointer" }}
     >
       {/* Main arrow line */}
@@ -146,23 +148,13 @@ function TimelineRow({
 
       {/* Warning dot */}
       {event.warning !== undefined && (
-        <circle
-          cx={midX + 74}
-          cy={yOffset - 6}
-          r={4}
-          fill="#f87171"
-          style={arrowStyle}
-        />
+        <circle cx={midX + 74} cy={yOffset - 6} r={4} fill="#f87171" style={arrowStyle} />
       )}
     </g>
   );
 }
 
-export default function ThreatTimeline({
-  detail,
-}: {
-  detail: AnalysisDetail;
-}): ReactNode {
+export default function ThreatTimeline({ detail }: { detail: AnalysisDetail }): ReactNode {
   const events = useMemo(() => buildTimeline(detail), [detail]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -219,19 +211,57 @@ export default function ThreatTimeline({
           {/* Swimlane headers */}
           <rect x={0} y={0} width={800} height={TOP_PAD} fill="#121215" />
           {/* Initiator */}
-          <text x={80} y={32} textAnchor="middle" fill="#828384" fontSize="11" fontFamily="ui-monospace, monospace" fontWeight="600">
+          <text
+            x={80}
+            y={32}
+            textAnchor="middle"
+            fill="#828384"
+            fontSize="11"
+            fontFamily="ui-monospace, monospace"
+            fontWeight="600"
+          >
             INITIATOR
           </text>
-          <line x1={80} y1={TOP_PAD} x2={80} y2={svgHeight} stroke="rgba(247,249,250,0.08)" strokeWidth={1} />
+          <line
+            x1={80}
+            y1={TOP_PAD}
+            x2={80}
+            y2={svgHeight}
+            stroke="rgba(247,249,250,0.08)"
+            strokeWidth={1}
+          />
           {/* Network */}
-          <text x={400} y={32} textAnchor="middle" fill="#828384" fontSize="11" fontFamily="ui-monospace, monospace" fontWeight="600">
+          <text
+            x={400}
+            y={32}
+            textAnchor="middle"
+            fill="#828384"
+            fontSize="11"
+            fontFamily="ui-monospace, monospace"
+            fontWeight="600"
+          >
             NETWORK / ESP TUNNEL
           </text>
           {/* Responder */}
-          <text x={720} y={32} textAnchor="middle" fill="#828384" fontSize="11" fontFamily="ui-monospace, monospace" fontWeight="600">
+          <text
+            x={720}
+            y={32}
+            textAnchor="middle"
+            fill="#828384"
+            fontSize="11"
+            fontFamily="ui-monospace, monospace"
+            fontWeight="600"
+          >
             RESPONDER
           </text>
-          <line x1={720} y1={TOP_PAD} x2={720} y2={svgHeight} stroke="rgba(247,249,250,0.08)" strokeWidth={1} />
+          <line
+            x1={720}
+            y1={TOP_PAD}
+            x2={720}
+            y2={svgHeight}
+            stroke="rgba(247,249,250,0.08)"
+            strokeWidth={1}
+          />
 
           {/* Row separator lines */}
           {events.map((_, i) => (
@@ -248,15 +278,12 @@ export default function ThreatTimeline({
 
           {/* Timeline event rows */}
           {events.map((event, i) => (
-            <g key={event.id} transform={`translate(0, ${TOP_PAD + i * ROW_HEIGHT + ROW_HEIGHT / 2})`}>
+            <g
+              key={event.id}
+              transform={`translate(0, ${TOP_PAD + i * ROW_HEIGHT + ROW_HEIGHT / 2})`}
+            >
               {/* Row index label */}
-              <text
-                x={16}
-                y={4}
-                fill="#474747"
-                fontSize="9"
-                fontFamily="ui-monospace, monospace"
-              >
+              <text x={16} y={4} fill="#474747" fontSize="9" fontFamily="ui-monospace, monospace">
                 {String(i + 1).padStart(2, "0")}
               </text>
 
@@ -302,9 +329,7 @@ export default function ThreatTimeline({
                 </span>
               </div>
               {selectedEvent.warning !== undefined && (
-                <p className="mt-2 text-sm text-sev-high">
-                  ⚠ {selectedEvent.warning}
-                </p>
+                <p className="mt-2 text-sm text-sev-high">⚠ {selectedEvent.warning}</p>
               )}
             </div>
           </div>

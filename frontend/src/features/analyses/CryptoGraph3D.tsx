@@ -26,10 +26,10 @@ import type { GraphNode, GraphEdge } from "./graphUtils";
 
 // ─── Color mapping ────────────────────────────────────────────────────────────
 const KIND_COLOR: Record<string, string> = {
-  initiator: "#af50ff",   // Signal Violet
-  responder: "#af50ff",   // Signal Violet
-  proposal: "#4ade80",    // Green (overridden per-node for weak)
-  child_sa: "#60a5fa",    // Blue
+  initiator: "#af50ff", // Signal Violet
+  responder: "#af50ff", // Signal Violet
+  proposal: "#4ade80", // Green (overridden per-node for weak)
+  child_sa: "#60a5fa", // Blue
 };
 
 const EDGE_COLOR: Record<string, string> = {
@@ -58,7 +58,7 @@ function NodeMesh({
       ? isWeak
         ? "#fbbf24"
         : "#4ade80"
-      : KIND_COLOR[node.kind] ?? "#af50ff";
+      : (KIND_COLOR[node.kind] ?? "#af50ff");
 
   const size =
     node.kind === "initiator" || node.kind === "responder"
@@ -79,17 +79,16 @@ function NodeMesh({
     <group position={node.position}>
       {/* Outer glow sphere */}
       <Sphere ref={meshRef} args={[size * 1.4, 12, 12]}>
-        <meshBasicMaterial
-          color={color}
-          transparent
-          opacity={isSelected ? 0.25 : 0.08}
-        />
+        <meshBasicMaterial color={color} transparent opacity={isSelected ? 0.25 : 0.08} />
       </Sphere>
 
       {/* Core sphere */}
       <Sphere
         args={[size, 16, 16]}
-        onClick={(e) => { e.stopPropagation(); onClick(); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
       >
         <meshStandardMaterial
           color={color}
@@ -180,12 +179,7 @@ function Scene({
         const toNode = nodeMap.get(edge.to);
         if (!fromNode || !toNode) return null;
         return (
-          <EdgeLine
-            key={edge.id}
-            from={fromNode.position}
-            to={toNode.position}
-            kind={edge.kind}
-          />
+          <EdgeLine key={edge.id} from={fromNode.position} to={toNode.position} kind={edge.kind} />
         );
       })}
 
@@ -212,25 +206,16 @@ function Scene({
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
-export default function CryptoGraph3D({
-  detail,
-}: {
-  detail: AnalysisDetail;
-}): ReactNode {
+export default function CryptoGraph3D({ detail }: { detail: AnalysisDetail }): ReactNode {
   const graph = useMemo(() => buildHandshakeGraph(detail), [detail]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const selectedNode = graph.nodes.find((n) => n.id === selectedId) ?? null;
 
-  const isWeak = (node: GraphNode) =>
-    node.kind === "proposal" && node.detail?.startsWith("⚠");
+  const isWeak = (node: GraphNode) => node.kind === "proposal" && node.detail?.startsWith("⚠");
 
   return (
-    <div
-      role="region"
-      aria-label="3D IKE cryptographic handshake visualizer"
-      className="space-y-3"
-    >
+    <div role="region" aria-label="3D IKE cryptographic handshake visualizer" className="space-y-3">
       <div className="flex flex-wrap items-center gap-3">
         <h3 className="font-medium">IKE SA Crypto Negotiation Graph</h3>
         {graph.ikeVersion !== null && (
@@ -246,8 +231,8 @@ export default function CryptoGraph3D({
       </div>
 
       <p className="max-w-xl text-sm text-ink-muted">
-        Drag to rotate · Scroll to zoom · Click a node to inspect.
-        Dashed red edges = offered but not selected. Amber nodes = weak algorithms.
+        Drag to rotate · Scroll to zoom · Click a node to inspect. Dashed red edges = offered but
+        not selected. Amber nodes = weak algorithms.
       </p>
 
       {/* 3D Canvas */}
@@ -255,18 +240,13 @@ export default function CryptoGraph3D({
         className="overflow-hidden rounded border border-line"
         style={{ height: 420, background: "#090909" }}
       >
-        <Canvas
-          camera={{ position: [0, 1.5, 9], fov: 50 }}
-          gl={{ antialias: true, alpha: true }}
-        >
+        <Canvas camera={{ position: [0, 1.5, 9], fov: 50 }} gl={{ antialias: true, alpha: true }}>
           <Suspense fallback={null}>
             <Scene
               nodes={graph.nodes}
               edges={graph.edges}
               selectedId={selectedId}
-              onSelect={(id) =>
-                setSelectedId((prev) => (prev === id ? null : id))
-              }
+              onSelect={(id) => setSelectedId((prev) => (prev === id ? null : id))}
             />
           </Suspense>
         </Canvas>
@@ -322,8 +302,8 @@ export default function CryptoGraph3D({
 
       {graph.nodes.length <= 2 && (
         <p className="text-sm text-ink-muted" role="note">
-          Insufficient IKE transform evidence in this capture to build a full graph.
-          The graph shows only the observed endpoints.
+          Insufficient IKE transform evidence in this capture to build a full graph. The graph shows
+          only the observed endpoints.
         </p>
       )}
     </div>

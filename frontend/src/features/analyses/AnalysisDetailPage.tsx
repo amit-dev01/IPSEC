@@ -44,13 +44,15 @@ type TabId =
   | "evidence"
   | "report";
 
-function PollStatus({ status, detail }: { status: string; detail?: AnalysisDetail | undefined }): ReactNode {
+function PollStatus({
+  status,
+  detail,
+}: {
+  status: string;
+  detail?: AnalysisDetail | undefined;
+}): ReactNode {
   if (status === "queued" || status === "running") {
-    return (
-      <div className="mb-4">
-        {detail && <LiveAnalysisFeed detail={detail} />}
-      </div>
-    );
+    return <div className="mb-4">{detail && <LiveAnalysisFeed detail={detail} />}</div>;
   }
   return null;
 }
@@ -394,7 +396,8 @@ export default function AnalysisDetailPage(): ReactNode {
           <div className="mt-4 rounded border border-line bg-surface-raised p-4">
             <h4 className="text-sm font-semibold text-ink-bright">Instant Compliance Export</h4>
             <p className="mt-1 text-xs text-ink-muted">
-              Generate a client-side vector PDF audit document or structured machine-readable compliance JSON with RFC citations.
+              Generate a client-side vector PDF audit document or structured machine-readable
+              compliance JSON with RFC citations.
             </p>
             <div className="mt-3">
               <ReportExportButton detail={detail} />
@@ -402,7 +405,9 @@ export default function AnalysisDetailPage(): ReactNode {
           </div>
 
           <div className="mt-4">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Authoritative Server Reports</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+              Authoritative Server Reports
+            </h4>
             <div className="mt-2 flex gap-2">
               {(["json", "pdf"] as const).map((format) => (
                 <button

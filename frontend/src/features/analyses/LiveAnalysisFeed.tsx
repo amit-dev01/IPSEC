@@ -68,7 +68,8 @@ export default function LiveAnalysisFeed({ detail }: LiveAnalysisFeedProps): Rea
               const eventType = eventMatch ? eventMatch[1] : "message";
 
               if (eventType === "phase") {
-                const prog = typeof data.progress === "number" ? Math.round(data.progress * 100) : 50;
+                const prog =
+                  typeof data.progress === "number" ? Math.round(data.progress * 100) : 50;
                 const msg = String(data.message ?? "");
                 setProgress(prog);
                 setCurrentPhase(msg);
@@ -148,8 +149,12 @@ export default function LiveAnalysisFeed({ detail }: LiveAnalysisFeedProps): Rea
     setCurrentPhase("Ingress & Frame Validation");
     await delay(350);
 
-    const protoFacts = detail.packet_observed_facts.find((f) => f.fact_name === "ipsec.protocols_observed");
-    const protos = Array.isArray(protoFacts?.fact_value) ? protoFacts.fact_value.join(", ") : "IKEv2, ESP";
+    const protoFacts = detail.packet_observed_facts.find(
+      (f) => f.fact_name === "ipsec.protocols_observed",
+    );
+    const protos = Array.isArray(protoFacts?.fact_value)
+      ? protoFacts.fact_value.join(", ")
+      : "IKEv2, ESP";
 
     setLogs((prev) => [
       ...prev,
@@ -220,7 +225,10 @@ export default function LiveAnalysisFeed({ detail }: LiveAnalysisFeedProps): Rea
   };
 
   useEffect(() => {
-    void startStream();
+    const timer = setTimeout(() => {
+      void startStream();
+    }, 0);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detail.id]);
 
@@ -268,7 +276,12 @@ export default function LiveAnalysisFeed({ detail }: LiveAnalysisFeedProps): Rea
             className="inline-flex items-center gap-1.5 rounded border border-line bg-surface-sunken px-2.5 py-1 text-xs font-medium text-ink transition hover:border-signal-violet hover:text-signal-violet"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
             Replay Stream
           </button>
