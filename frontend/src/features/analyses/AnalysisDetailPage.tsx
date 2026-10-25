@@ -23,24 +23,35 @@ import { assessmentLabel } from "@/lib/permissions";
 import { allEvidence, asSource, isUnknown } from "./evidence-lib";
 import type { Evidence } from "./evidence-lib";
 import AssessmentTab from "./AssessmentTab";
+import ComplianceMatrix from "./ComplianceMatrix";
 import InspectorTab from "./InspectorTab";
+import LiveAnalysisFeed from "./LiveAnalysisFeed";
+import ReportExportButton from "./ReportExportButton";
 import TrafficTab from "./TrafficTab";
 import ThreatTimeline from "./ThreatTimeline";
 const CryptoGraph3D = lazy(() => import("./CryptoGraph3D"));
 
 type TabId =
-  "overview" | "assessment" | "inspector" | "traffic" | "findings" | "evidence" | "report" | "crypto3d" | "timeline";
+  | "overview"
+  | "assessment"
+  | "compliance"
+  | "crypto3d"
+  | "timeline"
+  | "feed"
+  | "inspector"
+  | "traffic"
+  | "findings"
+  | "evidence"
+  | "report";
 
-function PollStatus({ status }: { status: string }): ReactNode {
-  if (status === "queued")
-    return <p role="status">Stage: queued — waiting for an analysis worker.</p>;
-  if (status === "running")
+function PollStatus({ status, detail }: { status: string; detail?: AnalysisDetail | undefined }): ReactNode {
+  if (status === "queued" || status === "running") {
     return (
-      <p role="status">
-        Stage: running — packet parsing and evidence extraction in progress. This page refreshes
-        automatically.
-      </p>
+      <div className="mb-4">
+        {detail && <LiveAnalysisFeed detail={detail} />}
+      </div>
     );
+  }
   return null;
 }
 
@@ -106,8 +117,10 @@ export default function AnalysisDetailPage(): ReactNode {
   const tabs: { id: TabId; label: string }[] = [
     { id: "overview", label: "Overview" },
     { id: "assessment", label: "Security Assessment & Threat Matrix" },
+    { id: "compliance", label: "Compliance Matrix" },
     { id: "crypto3d", label: "3D Crypto Graph" },
     { id: "timeline", label: "Threat Timeline" },
+    { id: "feed", label: "Live Telemetry Feed" },
     { id: "inspector", label: "Protocol & Security Inspector" },
     { id: "traffic", label: "AI Traffic Inference & Metadata" },
     { id: "findings", label: `Findings (${detail.findings.length})` },
@@ -131,7 +144,7 @@ export default function AnalysisDetailPage(): ReactNode {
       </div>
 
       <div className="mt-2 text-sm">
-        <PollStatus status={run.status} />
+        <PollStatus status={run.status} detail={detail} />
         {run.status === "failed" && (
           <div role="alert" className="mt-2 rounded border border-sev-critical p-3">
             <p>
@@ -232,6 +245,17 @@ export default function AnalysisDetailPage(): ReactNode {
         </div>
       )}
 
+      {tab === "compliance" && (
+        <div
+          role="tabpanel"
+          id="panel-compliance"
+          aria-labelledby="tab-compliance"
+          className="py-4"
+        >
+          <ComplianceMatrix detail={detail} />
+        </div>
+      )}
+
       {tab === "crypto3d" && (
         <div role="tabpanel" id="panel-crypto3d" aria-labelledby="tab-crypto3d" className="py-4">
           <Suspense fallback={<p className="text-sm text-ink-muted">Loading 3D engine…</p>}>
@@ -243,6 +267,12 @@ export default function AnalysisDetailPage(): ReactNode {
       {tab === "timeline" && (
         <div role="tabpanel" id="panel-timeline" aria-labelledby="tab-timeline" className="py-4">
           <ThreatTimeline detail={detail} />
+        </div>
+      )}
+
+      {tab === "feed" && (
+        <div role="tabpanel" id="panel-feed" aria-labelledby="tab-feed" className="py-4">
+          <LiveAnalysisFeed detail={detail} />
         </div>
       )}
 
@@ -360,24 +390,38 @@ export default function AnalysisDetailPage(): ReactNode {
               Open Report Center (Executive / Technical views)
             </Link>
           </p>
-          <div className="mt-3 flex gap-2">
-            {(["json", "pdf"] as const).map((format) => (
-              <button
-                key={format}
-                type="button"
-                className="rounded border border-line px-3 py-1.5 text-sm"
-                onClick={() =>
-                  void downloadReport(analysisId, format).catch((error: unknown) =>
-                    toast.push(
-                      "error",
-                      error instanceof ApiError ? error.userMessage() : "Report download failed.",
-                    ),
-                  )
-                }
-              >
-                Download {format.toUpperCase()} report
-              </button>
-            ))}
+
+          <div className="mt-4 rounded border border-line bg-surface-raised p-4">
+            <h4 className="text-sm font-semibold text-ink-bright">Instant Compliance Export</h4>
+            <p className="mt-1 text-xs text-ink-muted">
+              Generate a client-side vector PDF audit document or structured machine-readable compliance JSON with RFC citations.
+            </p>
+            <div className="mt-3">
+              <ReportExportButton detail={detail} />
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Authoritative Server Reports</h4>
+            <div className="mt-2 flex gap-2">
+              {(["json", "pdf"] as const).map((format) => (
+                <button
+                  key={format}
+                  type="button"
+                  className="rounded border border-line px-3 py-1.5 text-xs text-ink transition hover:border-signal-violet"
+                  onClick={() =>
+                    void downloadReport(analysisId, format).catch((error: unknown) =>
+                      toast.push(
+                        "error",
+                        error instanceof ApiError ? error.userMessage() : "Report download failed.",
+                      ),
+                    )
+                  }
+                >
+                  Download Server {format.toUpperCase()}
+                </button>
+              ))}
+            </div>
           </div>
           {run.status !== "succeeded" && (
             <p className="mt-3">

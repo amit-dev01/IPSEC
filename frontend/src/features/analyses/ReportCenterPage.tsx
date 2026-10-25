@@ -13,6 +13,7 @@ import { useAuth } from "@/features/auth/auth-context";
 
 import { assessmentStatus, evidenceCoverage, missingKeyFacts } from "./assessment-lib";
 import { allEvidence, asSource } from "./evidence-lib";
+import ReportExportButton from "./ReportExportButton";
 
 /**
  * In-app dual-mode report viewer. All values render through React text
@@ -107,25 +108,26 @@ export default function ReportCenterPage(): ReactNode {
         ))}
       </div>
 
-      <div className="print-hidden mt-3 flex gap-2">
+      <div className="print-hidden mt-4 flex flex-wrap items-center gap-3 rounded border border-line bg-surface-raised p-3">
+        <ReportExportButton detail={detail} />
+        <div className="h-4 w-px bg-line" />
         <button
           type="button"
           onClick={() => download("pdf")}
-          className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink"
+          className="rounded border border-line px-2.5 py-1.5 text-xs font-medium text-ink transition hover:border-signal-violet"
         >
-          Download PDF (authoritative)
+          Server Raw PDF
         </button>
         <button
           type="button"
           onClick={() => download("json")}
-          className="rounded border border-line px-3 py-1.5 text-sm"
+          className="rounded border border-line px-2.5 py-1.5 text-xs font-medium text-ink transition hover:border-signal-violet"
         >
-          Download JSON
+          Server Raw JSON
         </button>
         {reportQuery.isSuccess && (
-          <span className="text-xs text-ink-muted">
-            Structured report v{String(reportQuery.data["report_version"] ?? "1.0")} loaded from the
-            backend.
+          <span className="text-[11px] text-ink-muted">
+            Structured report v{String(reportQuery.data["report_version"] ?? "1.0")}
           </span>
         )}
       </div>
