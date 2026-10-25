@@ -38,6 +38,9 @@ envVarGroups:
         value: AES256
       - key: IPSEC_JWT_SIGNING_KEY
         generateValue: true
+      # Demo deployment: no login anywhere (API runs as demo admin).
+      - key: IPSEC_DEMO_MODE
+        value: "true"
 
 services:
   - type: web

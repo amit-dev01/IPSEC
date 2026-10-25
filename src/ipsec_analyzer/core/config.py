@@ -56,6 +56,10 @@ class Settings(BaseSettings):
     # startup creates this org+admin iff no user with the email exists; it is
     # idempotent and never re-runs afterwards. Remove both env vars after the
     # first successful login. The password is never logged.
+    # Demo Mode: when true, ALL API requests run as an auto-created demo
+    # admin (no token required, permissions bypassed by the admin role).
+    # Intended only for public demos - never enable on a real deployment.
+    demo_mode: bool = False
     bootstrap_email: str | None = None
     bootstrap_password: str | None = None
     bootstrap_organization: str = "Demo Lab"
