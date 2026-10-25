@@ -278,7 +278,9 @@ export default function CapturesPage(): ReactNode {
         <UploadModal
           onClose={() => setUploadOpen(false)}
           onUploaded={async () => {
-            setUploadOpen(false);
+            // Do NOT close here: the modal shows the authoritative
+            // server-computed SHA-256 on completion; the user dismisses
+            // it with Done. (Auto-closing hid that confirmation.)
             await invalidateLists();
           }}
         />
