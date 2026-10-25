@@ -1,58 +1,80 @@
 @import "tailwindcss";
 
 /*
- * Design tokens — cybersecurity analyst workbench.
- * Light + high-contrast dark (slate) themes via [data-theme="dark"].
- * Severity and provenance tokens ALWAYS pair color with text/icon in
- * components (see components/badges.tsx); color is never the only signal.
+ * dope.security style tokens — Midnight terminal with violet beacons.
+ * Pure dark mode void canvas (#090909), crisp hairline borders,
+ * stamped uppercase letterspacing, GrandSlang display italics,
+ * and rationed Signal Violet (#af50ff) beacons.
  */
+
 :root {
-  --surface: #f8fafc;
-  --surface-raised: #ffffff;
-  --surface-sunken: #eef2f7;
-  --ink: #0f172a;
-  --ink-muted: #475569;
-  --line: #cbd5e1;
-  --accent: #1d4ed8;
-  --accent-ink: #ffffff;
+  /* dope.security palette */
+  --color-near-black: #090909;
+  --color-almost-white: #f7f9fa;
+  --color-soft-white: #f0f0f0;
+  --color-steel: #828384;
+  --color-graphite: #474747;
+  --color-iron: #423738;
+  --color-ash: #6b6b6b;
+  --color-signal-violet: #af50ff;
+  --color-lavender-mist: #e1bdff;
 
-  --sev-critical: #991b1b;
-  --sev-high: #c2410c;
-  --sev-medium: #a16207;
-  --sev-low: #0369a1;
-  --sev-info: #475569;
+  /* App semantic tokens mapping to dope.security */
+  --surface: #090909;
+  --surface-raised: #121215;
+  --surface-sunken: #1a1a1f;
+  --ink: #f7f9fa;
+  --ink-muted: #828384;
+  --line: rgba(247, 249, 250, 0.12);
+  --accent: #af50ff;
+  --accent-ink: #f7f9fa;
 
-  --prov-observed: #166534;
-  --prov-manifest: #7c2d12;
-  --prov-supplied: #9a3412;
-  --prov-inferred: #6d28d9;
-  --prov-unknown: #525252;
+  --sev-critical: #f87171;
+  --sev-high: #fb923c;
+  --sev-medium: #fbbf24;
+  --sev-low: #c084fc;
+  --sev-info: #828384;
+
+  --prov-observed: #a78bfa;
+  --prov-manifest: #c084fc;
+  --prov-supplied: #e879f9;
+  --prov-inferred: #af50ff;
+  --prov-unknown: #6b6b6b;
+
+  /* Typography */
+  --font-whyte: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-whyte-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-grandslang: 'Lora', 'Playfair Display', Georgia, serif;
+
+  /* Radii */
+  --radius-cards: 19.2px;
+  --radius-pills: 1584px;
+  --radius-buttons: 8px;
+  --radius-smallcontrols: 6px;
 }
 
 [data-theme="dark"] {
-  --surface: #020617;
-  --surface-raised: #0f172a;
-  --surface-sunken: #1e293b;
-  --ink: #f1f5f9;
-  --ink-muted: #94a3b8;
-  --line: #334155;
-  --accent: #60a5fa;
-  --accent-ink: #020617;
-
-  --sev-critical: #fca5a5;
-  --sev-high: #fdba74;
-  --sev-medium: #fde68a;
-  --sev-low: #7dd3fc;
-  --sev-info: #cbd5e1;
-
-  --prov-observed: #86efac;
-  --prov-manifest: #fdba74;
-  --prov-supplied: #fed7aa;
-  --prov-inferred: #c4b5fd;
-  --prov-unknown: #d4d4d4;
+  --surface: #090909;
+  --surface-raised: #121215;
+  --surface-sunken: #1a1a1f;
+  --ink: #f7f9fa;
+  --ink-muted: #828384;
+  --line: rgba(247, 249, 250, 0.12);
+  --accent: #af50ff;
+  --accent-ink: #f7f9fa;
 }
 
 @theme inline {
+  --color-near-black: var(--color-near-black);
+  --color-almost-white: var(--color-almost-white);
+  --color-soft-white: var(--color-soft-white);
+  --color-steel: var(--color-steel);
+  --color-graphite: var(--color-graphite);
+  --color-iron: var(--color-iron);
+  --color-ash: var(--color-ash);
+  --color-signal-violet: var(--color-signal-violet);
+  --color-lavender-mist: var(--color-lavender-mist);
+
   --color-surface: var(--surface);
   --color-surface-raised: var(--surface-raised);
   --color-surface-sunken: var(--surface-sunken);
@@ -71,30 +93,64 @@
   --color-prov-supplied: var(--prov-supplied);
   --color-prov-inferred: var(--prov-inferred);
   --color-prov-unknown: var(--prov-unknown);
-  --font-sans: ui-sans-system, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: ui-monospace, "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+
+  --font-sans: var(--font-whyte);
+  --font-mono: var(--font-whyte-mono);
+  --font-display: var(--font-grandslang);
 }
 
 body {
   background: var(--surface);
   color: var(--ink);
-  font-family: var(--font-sans);
+  font-family: var(--font-whyte);
+  overflow-x: hidden;
 }
 
-/** Monospace utility for SPIs, SHA-256 hashes, frame numbers, IP endpoints. */
+/* Stamped section letterspacing: the breath between letters is the design */
+.font-stamp {
+  font-family: var(--font-whyte-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+/* GrandSlang italic display serif */
+.font-display-italic {
+  font-family: var(--font-grandslang);
+  font-style: italic;
+  letter-spacing: -0.03em;
+}
+
+/** Monospace utility for SPIs, SHA-256 hashes, frame numbers, IP endpoints */
 .mono {
-  font-family: var(--font-mono);
+  font-family: var(--font-whyte-mono);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
   word-break: break-all;
 }
 
-/** Tabular numerals for scores, byte counts, durations, probabilities. */
+/** Tabular numerals for scores, byte counts, durations */
 .tnum {
   font-variant-numeric: tabular-nums;
 }
 
-/* Report print fallback (backend PDF remains authoritative). */
+/* Frosted nav bar */
+.frosted-nav {
+  background: rgba(18, 16, 28, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(247, 249, 250, 0.1);
+}
+
+/* Atmospheric violet glow background */
+.violet-bloom-hero {
+  background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(175, 80, 255, 0.18), rgba(9, 9, 9, 0) 70%);
+}
+
+.violet-glow-subtle {
+  box-shadow: 0 0 50px -10px rgba(175, 80, 255, 0.25);
+}
+
+/* Report print fallback */
 @media print {
   .print-hidden,
   nav,
@@ -107,11 +163,5 @@ body {
   }
   .report-print {
     font-size: 11pt;
-  }
-  .report-print table {
-    page-break-inside: auto;
-  }
-  .report-print tr {
-    page-break-inside: avoid;
   }
 }
