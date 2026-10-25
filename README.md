@@ -1,198 +1,228 @@
-# IPSEC — IPsec Analyzer
+<div align="center">
 
-Defensive analysis of captures **supplied by authorized users** (or an explicitly
-allowlisted passive agent). It does not inject packets, probe targets, recover keys,
-decrypt traffic, or handle PSKs/private keys. PCAPs are never sent to any external
-LLM/third-party AI service.
+<img src="docs/assets/logo.png" alt="IPSEC Analyzer Logo" width="180" style="border-radius: 24px; box-shadow: 0 0 35px rgba(175, 80, 255, 0.45);" />
 
-See [`docs/architecture.md`](docs/architecture.md) for the full scaffold description.
+# IPSEC // ANALYZER
+### Automated Posture & Epistemic Cryptographic Evidence Engine for IKEv2 / IPsec
 
-## Status: scaffold stage
+[![CI Pipeline](https://github.com/amit-dev01/IPSEC/actions/workflows/ci.yml/badge.svg)](https://github.com/amit-dev01/IPSEC/actions/workflows/ci.yml)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.161.1-009688?style=flat&logo=fastapi)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-19.3.1-61DAFB?style=flat&logo=react)](https://react.dev)
+[![Three.js](https://img.shields.io/badge/Three.js-0.186.1-black?style=flat&logo=threedotjs)](https://threejs.org)
+[![Tailwind CSS v4](https://img.shields.io/badge/Tailwind-4.3.3-38B2AC?style=flat&logo=tailwindcss)](https://tailwindcss.com)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-336791?style=flat&logo=postgresql)](https://www.postgresql.org)
+[![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-blue?style=flat&logo=python)](https://www.python.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-af50ff.svg)](LICENSE)
 
-Implemented: the FastAPI project scaffold only — app factory with lifespan handling,
-pydantic-settings configuration, structured JSON logging, SQLAlchemy 2 models,
-tenant-scoped capture lookup, tenant-isolated S3 object keys, streaming SHA-256,
-Celery worker configuration, and `/api/v1/health/live` + `/api/v1/health/ready`
-(ready only when PostgreSQL actually answers, otherwise 503 `unavailable`).
+<br/>
 
-**Not implemented yet** (later stages, on request): packet processing, authentication,
-capture upload, TShark parsing, evidence extraction, ML classification, assessment
-rules, reporting. Absent capabilities surface as explicit `unknown`/`unavailable`,
-never as fabricated findings or a "secure" result.
+**Defensive, passive analysis of IPsec packet captures supplied by authorized security engineers.**  
+No packet injection · No target probing · No key recovery · Zero transmission of PCAP bytes to external LLMs.
 
-## Capture ingestion
+<br/>
 
-`POST /api/v1/captures` (multipart, `captures:write`) streams the upload to a
-temp file in bounded chunks — computing SHA-256, enforcing
-`IPSEC_MAX_UPLOAD_BYTES` while reading, and detecting PCAP/PCAPNG from magic
-bytes (extension and client MIME type are ignored; the API never parses the
-capture). Objects are stored first under random tenant-prefixed keys
-(`tenants/{org}/captures/{id}/{random}` — the submitted filename is only a
-sanitized display name and keys are never exposed to clients), then the
-database row and a hash-chained `capture.uploaded` audit event commit together;
-a failed commit deletes the object, and a failed storage write leaves no row.
-Tenant-scoped `GET /api/v1/captures`, `GET /api/v1/captures/{id}`,
-`GET /api/v1/captures/{id}/download` (audited, streamed), and
-`DELETE /api/v1/captures/{id}` (object deleted, audited; tombstoned if storage
-deletion fails) are provided. Captures are never parsed in the API process.
+<img src="docs/assets/banner.png" alt="3D Cryptographic Graph & Telemetry Banner" width="100%" style="border-radius: 12px; border: 1px solid rgba(175, 80, 255, 0.25); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);" />
 
-Storage is private S3-compatible storage behind an abstraction
-(`storage/base.py`, `storage/s3.py`); MinIO is the development backend
-(`docker compose up minio`, then create the `ipsec-captures` bucket, e.g.
-`mc mb local/ipsec-captures`). TLS is on by default
-(`IPSEC_S3_USE_TLS`); server-side encryption is requested only when
-`IPSEC_S3_SSE_ALGORITHM` (`AES256` or `aws:kms`) is configured — the system
-never claims encryption is enabled when it is not, and production refuses to
-start without TLS + SSE configured.
+</div>
 
-### Reverse proxy (production guidance)
-Set the proxy body limit slightly above `IPSEC_MAX_UPLOAD_BYTES` so oversized
-uploads are rejected cheaply at the edge, and keep the application limit as the
-authoritative check (the proxy limit alone is not sufficient):
+---
 
-```nginx
-client_max_body_size 513m;        # app limit (512 MiB default) + multipart overhead
-location /api/v1/captures {
-    proxy_request_buffering off;  # stream uploads; do not buffer whole files
-    proxy_pass http://ipsec-api;
-}
+## ⚡ Core Philosophy: Epistemic Integrity
+
+> **"Unknown evidence is reported as unknown — never as secure."**  
+> *A missing finding is not a clean bill of health. A missing score means evidence coverage was insufficient — never a default pass.*
+
+In enterprise cryptographic assessments, tools frequently commit epistemic fabrication: assuming an encrypted tunnel uses modern algorithms simply because negotiation began over IKEv2. **IPSEC Analyzer** mathematically enforces an evidence boundary:
+- **Offered vs Selected**: Client-offered transforms are permanently segregated from responder-selected transforms.
+- **IKE-SA vs Child-SA**: Outer IKE negotiation ciphers are strictly decoupled from inner ESP data-phase ciphers.
+- **Visibility Boundaries**: If the Child SA transform was negotiated inside an encrypted `IKE_AUTH` exchange without available credentials, the ESP cipher is recorded as `unknown` with a 0% security claim.
+- **Data Privacy**: Only packet headers and flow metadata are parsed; inner plaintext is never decrypted, stored, or sent to external AI APIs.
+
+---
+
+## 💎 Advanced Interactive 3D & Telemetry Features
+
+The frontend workbench is built with **React 19**, **Vite 8**, **Tailwind CSS v4**, and **Three.js** (`@react-three/fiber` + `@react-three/drei`) in a **dope.security midnight aesthetic** (deep obsidian surfaces, hairline borders, and neon Signal Violet `#af50ff` accents).
+
+<br/>
+
+### 1. 🌌 3D IKE Cryptographic Node Graph
+*Interactive WebGL spatial visualizer located in `CryptoGraph3D.tsx`*
+- **3D Spatial Topology**: Renders IKE Security Associations, Diffie-Hellman Key Exchange groups, PRF algorithms, and integrity transforms as glowing 3D nodes connected by dynamic laser arcs in 3D Euclidean space.
+- **Interactive Orbit Controls**: Rotate, pan, zoom, and inspect individual transform nodes. Clicking any cryptographic vertex displays its exact RFC benchmark status and security posture.
+- **Particle Flows & Emissive Shaders**: Visualizes simulated packet flows traversing the negotiated tunnel with customizable wireframe grids and depth-based point fog.
+
+### 2. 🎯 Multi-Ring Score Radial Gauge
+*SVG telemetry gauge located in `ScoreRadial.tsx`*
+- **Multi-Ring Donut Arc**: Simultaneously displays calibrated **Security Score (0–100)**, **Risk Score (0–100)**, and **Observed Evidence Coverage (%)**.
+- **Smooth Easing Animations**: Independent spring physics for each metric ring with color-coded safety indicators.
+- **Refusal Guarantees**: Intentionally withholds the security score and renders an explicit warning badge whenever key evidence facts are unobserved.
+
+### 3. 🛡️ RFC Benchmark Compliance Matrix
+*Standards audit grid located in `ComplianceMatrix.tsx` and `rfcCatalog.ts`*
+- **Audited Specifications**:
+  - `RFC 7296` — IKEv2 Protocol Structure & Security Association State Machine
+  - `RFC 4303` — IP Encapsulating Security Payload (ESP) Header Formatting
+  - `RFC 8221` — Cryptographic Algorithm Implementation Requirements for ESP & AH
+  - `RFC 8247` — Cryptographic Algorithm Implementation Requirements for IKEv2
+  - `RFC 4106` — AES-GCM in IPsec ESP (AEAD Operation)
+  - `RFC 4868` — HMAC-SHA-256/384/512 in IPsec
+  - `RFC 5903` — ECP Groups 19, 20, 21 for IKE and IKEv2
+  - `RFC 6989` — Additional Diffie-Hellman Tests for IKEv2
+  - `RFC 3948` — UDP Encapsulation of IPsec ESP Packets (NAT-Traversal)
+- **Interactive Filtering & Export**: Filter by verdict (`Compliant`, `Non-Compliant`, `Partial / Unknown`, `Informational`) and export clean audit CSV logs.
+
+### 4. ⚡ Live Telemetry Analysis Feed (SSE Stream)
+*Streaming terminal visualizer located in `LiveAnalysisFeed.tsx`*
+- **Server-Sent Events (SSE)**: Connects to `GET /api/v1/analyses/{id}/stream` to deliver real-time progress while worker parsing is active.
+- **Simulated Terminal Stream**: Displays packet processing counters, phase transitions (`IKE_SA_INIT`, `IKE_AUTH`, `CREATE_CHILD_SA`), packet parsing throughput, and live evidence ingestion.
+
+### 5. 📄 Instant Compliance PDF & JSON Export
+*Client-side vector generation located in `ReportExportButton.tsx` and `reportTemplate.ts`*
+- **Vector PDF Compiler**: Compiles pixel-perfect cryptographic audit reports directly in the browser via `jspdf` with dark-mode executive summaries, findings severity breakdowns, and remediation advice.
+- **Machine-Readable JSON**: One-click export of structured compliance reports conforming to the versioned analysis schema.
+
+### 6. ⏱️ Temporal Threat Timeline
+*Packet-flow swimlane located in `ThreatTimeline.tsx` and `timelineUtils.ts`*
+- **Temporal Sequence Diagram**: Maps individual IKE packet flows in chronological order across Initiator and Responder swimlanes.
+- **Protocol Milestones**: Highlights transform proposals, nonce exchanges, SPI generation, rekey intervals, and NAT-Traversal detections.
+
+---
+
+## 🏛️ System Architecture
+
+```mermaid
+flowchart LR
+    subgraph Browser ["Frontend Workbench (Vite 8 + React 19)"]
+        UI[Dope.Security Midnight UI]
+        G3D[3D Crypto Graph - Three.js]
+        RAD[Multi-Ring Score Radial]
+        SSE_C[SSE Telemetry Client]
+    end
+
+    subgraph API_Tier ["API Gateway (FastAPI)"]
+        API[FastAPI Lifespan Service]
+        AUTH[Argon2id + JWT Auth]
+        S3[S3 / MinIO Tenant Ingestion]
+        SSE_S[SSE Streaming Engine]
+    end
+
+    subgraph Worker_Tier ["Analysis Engine (Celery Worker)"]
+        CELERY[Worker Claim & Limits]
+        TSHARK[Sandboxed TShark Parser]
+        EVID[Epistemic Evidence Engine]
+        ML[Offline Scikit-Learn Classifier]
+    end
+
+    subgraph Storage ["Persistence Layer"]
+        PG[(PostgreSQL 17 DB)]
+        REDIS[(Redis 7 Broker)]
+        OBJ[(MinIO S3 Buckets)]
+    end
+
+    Browser -->|REST / OpenAPI| API
+    Browser -->|SSE Events| SSE_S
+    API --> AUTH
+    API -->|Write Metadata| PG
+    API -->|Stream Upload| OBJ
+    API -->|Dispatch Job| REDIS
+    REDIS --> CELERY
+    CELERY --> TSHARK
+    TSHARK --> EVID
+    EVID --> ML
+    EVID -->|Persist Facts & Findings| PG
+    CELERY -->|Stream Telemetry| SSE_S
 ```
 
-## Worker parsing, evidence, manifests, and ML baseline
+---
 
-The Celery worker (the only image containing TShark — see `Dockerfile.worker`;
-**the API never imports or runs TShark**, verified by an import-graph check)
-downloads the capture to a private temp directory, verifies the downloaded
-object's SHA-256 against the database record **before** parsing, then runs
-TShark with a fixed executable and fixed arguments (`-n`, EK JSON lines, no
-shell, no user-supplied options/filters/paths/environment), under configurable
-time/packet-count/output-size/temp limits. Required TShark fields are
-validated against the installed version (`tshark -G fields`); unsupported
-fields fail explicitly (`parser_unsupported_field`), never silently zeroed.
-Temp directories are removed on success and failure; only packet summaries
-and aggregates are produced — payloads are never persisted or logged. Runs
-record TShark version, parser version, truncation warnings, and limitations.
+## 🚀 Quickstart & Local Development
 
-**Evidence** (`GET /api/v1/analyses/{id}/evidence`) gives every fact a name,
-value, source (`packet_observed`/`lab_manifest`/`analyst_supplied`/
-`model_inferred`/`unknown`), visibility (`visible`/`encrypted_or_unavailable`/
-`derived`), confidence/quality, frame references, and limitations. Offered IKE
-transforms are kept distinct from the responder-selected ones, IKE-SA
-transforms distinct from Child-SA/ESP transforms, and the ESP cipher, PFS,
-replay-window configuration, configured lifetimes, and tunnel/transport mode
-are reported `unknown` unless genuinely observed or supplied — an observed
-rekey interval is labelled derived and is *not* the configured lifetime. Outer
-addresses in evidence are hashed unless `IPSEC_EVIDENCE_ALLOW_PLAIN_ADDRESSES`
-is explicitly enabled.
+### Prerequisites
+- [uv](https://docs.astral.sh/uv/) (Python package & environment manager)
+- [Node.js](https://nodejs.org/) (v22 LTS) & [pnpm](https://pnpm.io/) (v12)
+- [Docker & Docker Compose](https://www.docker.com/)
 
-**Lab manifests** (`POST/GET /api/v1/captures/{id}/manifest`, schema `1.0`) let
-the authorized testbed declare ground truth (selected IKE config, mode,
-IPv4/6, ESP/DH/PFS, lifetimes, replay, traffic category, lab-only application
-label, testbed/run/capture IDs). The strict Pydantic schema structurally
-rejects PSKs/private/session keys and any secret-named field. Manifests never
-overwrite packet-observed facts; conflicts on the next run produce discrepancy
-evidence plus a `MANIFEST_PACKET_DISCREPANCY` finding. Admins can export a
-de-identified flow-feature dataset (`GET /api/v1/admin/exports/flow-dataset`).
+---
 
-**ML baseline** (local scikit-learn, no LLM, no external lookups): features are
-flow metadata only (counts, length/IAT statistics, direction, bursts,
-duration, byte rate, ESP/NAT-T ratios) — never payloads, raw IPs, domains, or
-usernames. Train offline from the admin export with group-by-capture/run
-splitting (no packet-level leakage):
+### 1. Start Infrastructure (PostgreSQL, Redis, MinIO)
 
 ```bash
-uv run ipsec-ml train --dataset export.json --out model.joblib \
-  --model-card model_card.json --model-version baseline-1.0
+# Clone the repository
+git clone https://github.com/amit-dev01/IPSEC.git
+cd IPSEC
+
+# Start backing services
+docker compose up -d postgres redis minio
 ```
 
-Point `IPSEC_ML_MODEL_PATH` at the administrator-built artifact; inference
-returns `{status, predicted_category, calibrated confidence, model_version,
-features_used, limitations}`, abstains to `unknown` below
-`IPSEC_ML_ABSTAIN_THRESHOLD`, and returns `unavailable` when no valid model is
-installed. Categories are broad (web/email/voice/video/messaging/ICMP/other);
-**exact app/vendor predictions (e.g. "this is WhatsApp") are not supported by
-default** — such labels exist only as lab ground truth for evaluation.
+---
 
-## Analysis jobs (Celery + Redis)
-
-`POST /api/v1/captures/{id}/analyses` (`analyses:write`) stores an `AnalysisRun`
-row first, then dispatches a Celery message containing **only the analysis ID**
-— never PCAP data, secrets, or user options. It returns `202` promptly; the
-worker does the (bounded) processing. PostgreSQL is the authoritative status
-store (the Celery result backend is disabled). Lifecycle:
-`queued → running → succeeded|failed`, with a documented retry path
-`failed → queued` for transient error codes only (`storage_unavailable`,
-`worker_timeout`, `broker_unavailable`, `dispatch_failed`) while attempts remain
-(`IPSEC_ANALYSIS_MAX_ATTEMPTS`, default 3) via `POST /api/v1/analyses/{id}/retry`.
-Invalid/unsupported captures fail terminally and are never retried. If the
-broker is down at request time, the row stays `queued` with
-`error_code=dispatch_failed` (never silently stuck): retry it via the endpoint,
-or let the periodic `reconcile_queued_analyses` beat task redispatch stale
-queued runs. Worker claim is atomic and processing is idempotent — duplicate
-deliveries are no-ops and never duplicate evidence/findings. The current
-pipeline stage (`verification-0.1`) verifies stored-capture size/SHA-256/magic
-in the worker and records that as evidence; it produces no findings or scores.
-Run a worker with: `uv run celery -A ipsec_analyzer.workers.celery_app:celery_app worker`
-(concurrency `IPSEC_WORKER_CONCURRENCY`, default 2, prefetch 1).
-
-## Authentication & authorization
-
-Argon2id password hashing (pwdlib), short-lived HS256 JWT access tokens
-(issuer/audience/expiry/signature validated; settings under `IPSEC_JWT_*` /
-`IPSEC_AUTH_*` in `.env.example`). `POST /api/v1/auth/login` takes a JSON
-email/password (not the OAuth2 password grant) and returns a bearer token.
-There is **no public registration** — bootstrap via the admin CLI:
+### 2. Backend Setup (FastAPI & Celery)
 
 ```bash
-IPSEC_ADMIN_PASSWORD='use-a-long-random-password' \
-  uv run ipsec-admin create-org-admin --organization "Acme" --email admin@example.com
-uv run ipsec-admin create-user --organization-id <uuid> --email a@example.com --role analyst
+# Copy local development environment template
+cp .env.example .env
+
+# Install frozen dependencies via uv
+uv sync --frozen --group dev
+
+# Apply database migrations
+uv run alembic upgrade head
+
+# Seed an administrator account
+IPSEC_ADMIN_PASSWORD='change-me-local-password' \
+  uv run ipsec-admin create-org-admin --organization "Acme Security" --email admin@example.com
+
+# Start the FastAPI API server
+uv run uvicorn ipsec_analyzer.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-Roles: `admin` (all), `analyst` (read/write captures & analyses, read/download
-reports), `viewer` (read + report download). The organization is always derived
-from the authenticated user; cross-tenant resource access returns 404. Login is
-rate-limited per client IP + email (in-process limiter — a multi-instance
-deployment must back it with Redis). Only `/api/v1/health/*` and explicitly
-enabled development docs are unauthenticated.
+In a separate terminal, launch the Celery background worker:
+```bash
+uv run celery -A ipsec_analyzer.workers.celery_app:celery_app worker --loglevel=INFO
+```
 
-## Persistence (PostgreSQL)
+---
 
-Models live in `src/ipsec_analyzer/models/` (Organization/User, Capture, AnalysisRun,
-EvidenceRecord, Finding, AuditEvent); SQLAlchemy 2 + Psycopg 3, Alembic migrations in
-`migrations/versions/` — deployment must use migrations, never `metadata.create_all()`.
-PostgreSQL stores metadata only; PCAP bytes belong in object storage.
+### 3. Frontend Setup (React 19 + Vite 8 + Three.js)
 
 ```bash
-uv run alembic upgrade head     # apply migrations (IPSEC_DATABASE_URL)
-uv run alembic check            # verify models match the migrated schema
-# PostgreSQL-backed tests (skip automatically without the env var):
-IPSEC_TEST_DATABASE_URL=postgresql+psycopg://ipsec:change-me-local-only@localhost:5432/ipsec_test \
-  uv run pytest tests/test_persistence_pg.py tests/test_tenant_isolation.py
+cd frontend
+
+# Install frozen dependencies
+pnpm install --frozen-lockfile
+
+# Launch the development server (with reverse-proxy to :8000)
+pnpm dev
 ```
+Open **[http://localhost:5173](http://localhost:5173)** in your browser to access the workbench.
 
-## Local development
+---
 
-Prerequisite: [`uv`](https://docs.astral.sh/uv/).
+## 🧪 Quality & CI Assurance
+
+Every commit is verified against a 10-step GitHub Actions pipeline. Run all checks locally:
 
 ```bash
-cp .env.example .env        # local-only placeholder values; never commit real secrets
-uv sync --frozen --group dev   # install exactly from uv.lock
-uv run uvicorn ipsec_analyzer.main:app --host 0.0.0.0 --port 8000
-curl http://localhost:8000/api/v1/health/live
-uv run pytest -q
-uv run ruff check src tests
-uv run ruff format --check src tests
+# Backend Quality Suite
+uv run ruff check src tests          # Strict Python linting
+uv run ruff format --check src tests # Code formatting
+uv run mypy src/ipsec_analyzer       # Strict static type checking
+uv run pytest -q                     # Backend unit & persistence tests
+uv run pip-audit                     # Known vulnerability audit
+
+# Frontend Quality Suite (inside ./frontend)
+pnpm lint                            # ESLint with 0 warnings allowed
+pnpm typecheck                       # TypeScript compilation (tsc -b)
+pnpm format:check                    # Prettier formatting verification
+pnpm test                            # Vitest component & store unit tests
+pnpm build                           # Vite production distribution build
+pnpm test:e2e                        # Playwright automated browser tests
 ```
 
-Secrets are read only from environment variables (or a secret manager that injects
-them into the environment). `.env.example` contains placeholder values only.
+---
 
-## Version / pinning notes
-Dependencies were resolved against PyPI and pinned in `uv.lock` (FastAPI 0.161.1,
-SQLAlchemy 2.1.6, Pydantic 2.14.1, Celery 5.6.3, Psycopg 3.3.6, scikit-learn 1.9.1 —
-see `uv.lock`). Development used the sandbox's Python 3.11.2; Python 3.13 could not
-be downloaded there (TLS failure to GitHub), so containers targeting 3.13 are not yet
-locally verified. Container/Compose images are pinned by version tag only; digests
-could not be verified (no Docker/registry access in the sandbox) and must be
-digest-pinned before production.
+## 📄 License & Attribution
+
+Distributed under the **MIT License**. Developed with strict adherence to official IETF standards (`RFC 7296`, `RFC 4303`, `RFC 8221`, `RFC 8247`).
