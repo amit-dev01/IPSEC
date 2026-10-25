@@ -11,7 +11,7 @@ WORKDIR /app
 # pnpm via npm, NOT Corepack: Render builds hit a broken Corepack cache
 # ("/root/.cache/node/corepack/v1/pnpm/12.15.0/bin/pnpm.cjs" MODULE_NOT_FOUND).
 RUN npm install --global pnpm@12.15.0
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build
