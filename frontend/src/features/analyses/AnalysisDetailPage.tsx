@@ -51,8 +51,26 @@ function PollStatus({
   status: string;
   detail?: AnalysisDetail | undefined;
 }): ReactNode {
-  if (status === "queued" || status === "running") {
-    return <div className="mb-4">{detail && <LiveAnalysisFeed detail={detail} />}</div>;
+  if (status === "queued") {
+    return (
+      <div className="mb-4 space-y-2">
+        <p role="status" className="text-ink-muted">
+          Stage: queued — waiting for an analysis worker.
+        </p>
+        {detail && <LiveAnalysisFeed detail={detail} />}
+      </div>
+    );
+  }
+  if (status === "running") {
+    return (
+      <div className="mb-4 space-y-2">
+        <p role="status" aria-live="polite" className="text-ink-muted">
+          Stage: running — packet parsing and evidence extraction in progress. This page refreshes
+          automatically.
+        </p>
+        {detail && <LiveAnalysisFeed detail={detail} />}
+      </div>
+    );
   }
   return null;
 }

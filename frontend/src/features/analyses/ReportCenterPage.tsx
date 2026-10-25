@@ -116,14 +116,14 @@ export default function ReportCenterPage(): ReactNode {
           onClick={() => download("pdf")}
           className="rounded border border-line px-2.5 py-1.5 text-xs font-medium text-ink transition hover:border-signal-violet"
         >
-          Server Raw PDF
+          Download PDF
         </button>
         <button
           type="button"
           onClick={() => download("json")}
           className="rounded border border-line px-2.5 py-1.5 text-xs font-medium text-ink transition hover:border-signal-violet"
         >
-          Server Raw JSON
+          Download JSON
         </button>
         {reportQuery.isSuccess && (
           <span className="text-[11px] text-ink-muted">

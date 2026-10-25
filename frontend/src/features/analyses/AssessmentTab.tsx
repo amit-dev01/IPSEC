@@ -154,21 +154,28 @@ export default function AssessmentTab({ detail }: { detail: AnalysisDetail }): R
             <p className="tnum mt-1 text-sm">Evidence coverage so far: {coverage}%</p>
           </div>
         ) : (
-          <div className="space-y-3 rounded border border-line p-4">
-            <ScoreBar
-              label="Risk score (0–100, higher = higher risk)"
-              value={detail.risk_score}
-              max={100}
-            />
+          <div className="space-y-4 rounded border border-line p-4">
+            <div>
+              <ScoreBar
+                label="Risk score (0–100, higher = higher risk)"
+                value={detail.risk_score}
+                max={100}
+              />
+              <p className="tnum mt-2 text-sm text-ink-muted">
+                Evidence Coverage: <strong className="text-ink">{coverage}%</strong>
+              </p>
+            </div>
             <div className="my-1 border-t border-line" />
-            <ScoreBar
-              label="Security score (0–100, higher = stronger posture)"
-              value={detail.security_score}
-              max={100}
-            />
-            <p className="tnum text-sm text-ink-muted">
-              Evidence coverage: <strong className="text-ink">{coverage}%</strong>
-            </p>
+            <div>
+              <ScoreBar
+                label="Security score (0–100, higher = stronger posture)"
+                value={detail.security_score}
+                max={100}
+              />
+              <p className="tnum mt-2 text-sm text-ink-muted">
+                Evidence Coverage: <strong className="text-ink">{coverage}%</strong>
+              </p>
+            </div>
           </div>
         )}
 
