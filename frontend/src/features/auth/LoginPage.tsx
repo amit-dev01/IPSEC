@@ -149,7 +149,7 @@ export function LoginPage(): ReactNode {
                     to="/app"
                     className="inline-flex items-center gap-1 text-xs font-medium text-[#0066cc] ml-2 hover:underline"
                   >
-                    Direct Terminal Access →
+                    Direct Console →
                   </Link>
                 </div>
               </div>
