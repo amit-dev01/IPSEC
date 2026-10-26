@@ -20,44 +20,54 @@ export default function AnalysesPage(): ReactNode {
   }
 
   return (
-    <section aria-labelledby="analyses-heading">
-      <h1 id="analyses-heading" className="text-xl font-semibold">
-        Analyses
-      </h1>
-      <p className="mt-1 text-sm text-ink-muted">
-        Runs are composed from each capture&apos;s analysis history (the API exposes runs per
-        capture). Select a run to inspect evidence, findings, and reports.
-      </p>
+    <section aria-labelledby="analyses-heading" className="space-y-6">
+      <div>
+        <h1
+          id="analyses-heading"
+          className="font-display text-3xl font-semibold tracking-tight text-[#1d1d1f]"
+        >
+          Security Analyses
+        </h1>
+        <p className="mt-1 text-sm text-[#707070]">
+          Deterministic IPsec protocol inspection, compliance evaluations, and cryptographic
+          assessment records.
+        </p>
+      </div>
+
       {ws.recentRuns.length === 0 ? (
-        <div className="mt-6">
+        <div className="mt-4">
           <EmptyState title="No analysis runs yet">
             <p>
-              Open a capture and choose <strong>Run Security Analysis</strong>. The backend applies
-              its configured assessment policy; the run shows the applied policy version.
+              Open a capture in the vault and choose <strong>Run Security Analysis</strong>. The
+              backend applies its configured cryptographic policy.
             </p>
-            <p className="mt-3">
-              <Link to="/captures" className="underline">
-                Go to Captures
+            <p className="mt-4">
+              <Link to="/captures" className="apple-btn-primary text-xs">
+                Go to Captures Vault
               </Link>
             </p>
           </EmptyState>
         </div>
       ) : (
-        <ul className="mt-4 space-y-2">
+        <ul className="space-y-3">
           {ws.runs.map((run) => (
             <li
               key={run.id}
-              className="flex flex-wrap items-center gap-3 rounded border border-line px-3 py-2 text-sm"
+              className="apple-card flex flex-wrap items-center gap-4 p-5 text-sm transition hover:border-[#d6d6d6]"
             >
               <StatusPill status={run.status} />
-              <Link to={`/analyses/${run.id}`} className="mono underline">
+              <Link
+                to={`/analyses/${run.id}`}
+                className="mono font-semibold text-[#0066cc] hover:underline"
+              >
                 {run.id}
               </Link>
-              <span className="text-ink-muted">
-                capture <span className="mono">{run.capture_id}</span> · queued{" "}
-                {formatTimestamp(run.queued_at)} · policy {run.policy_version}
+              <span className="text-xs text-[#707070]">
+                capture <span className="mono font-medium text-[#1d1d1f]">{run.capture_id}</span> ·
+                queued {formatTimestamp(run.queued_at)} · policy{" "}
+                <span className="mono">{run.policy_version}</span>
               </span>
-              <span className="tnum ml-auto">
+              <span className="tnum ml-auto font-semibold text-[#1d1d1f]">
                 {run.risk_score !== null ? `risk ${run.risk_score} / 100` : "not scored"}
               </span>
             </li>

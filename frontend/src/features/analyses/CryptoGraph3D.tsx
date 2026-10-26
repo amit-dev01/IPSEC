@@ -26,17 +26,17 @@ import type { GraphNode, GraphEdge } from "./graphUtils";
 
 // ─── Color mapping ────────────────────────────────────────────────────────────
 const KIND_COLOR: Record<string, string> = {
-  initiator: "#af50ff", // Signal Violet
-  responder: "#af50ff", // Signal Violet
-  proposal: "#4ade80", // Green (overridden per-node for weak)
-  child_sa: "#60a5fa", // Blue
+  initiator: "#0071e3", // Pricing Blue
+  responder: "#0066cc", // Apple Blue
+  proposal: "#34c759", // Apple Green
+  child_sa: "#0071e3", // Pricing Blue
 };
 
 const EDGE_COLOR: Record<string, string> = {
-  accepted: "#4ade80",
-  rejected: "#f87171",
-  weak: "#fbbf24",
-  unknown: "#828384",
+  accepted: "#34c759",
+  rejected: "#d70015",
+  weak: "#ff9500",
+  unknown: "#86868b",
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -56,9 +56,9 @@ function NodeMesh({
   const color =
     node.kind === "proposal"
       ? isWeak
-        ? "#fbbf24"
-        : "#4ade80"
-      : (KIND_COLOR[node.kind] ?? "#af50ff");
+        ? "#ff9500"
+        : "#34c759"
+      : (KIND_COLOR[node.kind] ?? "#0071e3");
 
   const size =
     node.kind === "initiator" || node.kind === "responder"
@@ -78,13 +78,13 @@ function NodeMesh({
   return (
     <group position={node.position}>
       {/* Outer glow sphere */}
-      <Sphere ref={meshRef} args={[size * 1.4, 12, 12]}>
-        <meshBasicMaterial color={color} transparent opacity={isSelected ? 0.25 : 0.08} />
+      <Sphere ref={meshRef} args={[size * 1.35, 16, 16]}>
+        <meshBasicMaterial color={color} transparent opacity={isSelected ? 0.3 : 0.08} />
       </Sphere>
 
       {/* Core sphere */}
       <Sphere
-        args={[size, 16, 16]}
+        args={[size, 24, 24]}
         onClick={(e) => {
           e.stopPropagation();
           onClick();
@@ -93,17 +93,17 @@ function NodeMesh({
         <meshStandardMaterial
           color={color}
           emissive={color}
-          emissiveIntensity={isSelected ? 0.8 : 0.3}
-          metalness={0.3}
-          roughness={0.4}
+          emissiveIntensity={isSelected ? 0.6 : 0.2}
+          metalness={0.15}
+          roughness={0.3}
         />
       </Sphere>
 
       {/* Label */}
       <Text
-        position={[0, size + 0.25, 0]}
-        fontSize={0.18}
-        color={color}
+        position={[0, size + 0.22, 0]}
+        fontSize={0.16}
+        color="#1d1d1f"
         anchorX="center"
         anchorY="bottom"
         maxWidth={2.4}
@@ -123,14 +123,14 @@ function EdgeLine({
   to: [number, number, number];
   kind: GraphEdge["kind"];
 }): ReactNode {
-  const color = EDGE_COLOR[kind] ?? "#828384";
+  const color = EDGE_COLOR[kind] ?? "#86868b";
   const lineRef = useRef<THREE.Line>(null!);
 
   // Subtle pulse on accepted edges
   useFrame((state) => {
     if (lineRef.current && kind === "accepted") {
       (lineRef.current.material as THREE.LineBasicMaterial).opacity =
-        0.5 + Math.sin(state.clock.elapsedTime * 1.5) * 0.2;
+        0.6 + Math.sin(state.clock.elapsedTime * 1.5) * 0.25;
     }
   });
 
@@ -141,9 +141,9 @@ function EdgeLine({
       ref={lineRef as MutableRefObject<never>}
       points={points}
       color={color}
-      lineWidth={kind === "accepted" ? 1.5 : 0.8}
+      lineWidth={kind === "accepted" ? 2 : 1}
       transparent
-      opacity={kind === "rejected" ? 0.35 : 0.65}
+      opacity={kind === "rejected" ? 0.35 : 0.75}
       dashed={kind === "rejected"}
       dashSize={0.15}
       gapSize={0.08}
@@ -170,9 +170,9 @@ function Scene({
 
   return (
     <>
-      <ambientLight intensity={0.4} />
-      <pointLight position={[5, 5, 5]} intensity={1.2} color="#af50ff" />
-      <pointLight position={[-5, -5, -3]} intensity={0.6} color="#60a5fa" />
+      <ambientLight intensity={0.85} />
+      <directionalLight position={[10, 10, 5]} intensity={1.1} color="#ffffff" />
+      <pointLight position={[-6, -6, -3]} intensity={0.5} color="#0071e3" />
 
       {edges.map((edge) => {
         const fromNode = nodeMap.get(edge.from);
@@ -215,30 +215,38 @@ export default function CryptoGraph3D({ detail }: { detail: AnalysisDetail }): R
   const isWeak = (node: GraphNode) => node.kind === "proposal" && node.detail?.startsWith("⚠");
 
   return (
-    <div role="region" aria-label="3D IKE cryptographic handshake visualizer" className="space-y-3">
-      <div className="flex flex-wrap items-center gap-3">
-        <h3 className="font-medium">IKE SA Crypto Negotiation Graph</h3>
-        {graph.ikeVersion !== null && (
-          <span className="mono rounded border border-line px-2 py-0.5 text-xs text-ink-muted">
-            {graph.ikeVersion}
-          </span>
-        )}
-        {graph.transforms !== null && (
-          <span className="mono rounded border border-prov-observed px-2 py-0.5 text-xs text-prov-observed">
-            {graph.transforms}
-          </span>
-        )}
+    <div
+      role="region"
+      aria-label="3D IKE cryptographic handshake visualizer"
+      className="apple-card p-6 space-y-4"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="font-display text-base font-semibold text-[#1d1d1f]">
+            IKE SA Crypto Negotiation Graph
+          </h3>
+          <p className="mt-0.5 text-xs text-[#707070]">
+            Drag to rotate · Scroll to zoom · Click a node to inspect parameters
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {graph.ikeVersion !== null && (
+            <span className="rounded-full border border-[#e6e6e8] bg-[#fafafc] px-3 py-1 font-mono text-xs text-[#1d1d1f]">
+              {graph.ikeVersion}
+            </span>
+          )}
+          {graph.transforms !== null && (
+            <span className="rounded-full border border-[#0071e3]/30 bg-[#0071e3]/10 px-3 py-1 font-mono text-xs text-[#0071e3]">
+              {graph.transforms}
+            </span>
+          )}
+        </div>
       </div>
-
-      <p className="max-w-xl text-sm text-ink-muted">
-        Drag to rotate · Scroll to zoom · Click a node to inspect. Dashed red edges = offered but
-        not selected. Amber nodes = weak algorithms.
-      </p>
 
       {/* 3D Canvas */}
       <div
-        className="overflow-hidden rounded border border-line"
-        style={{ height: 420, background: "#090909" }}
+        className="overflow-hidden rounded-[24px] border border-[#e6e6e8]"
+        style={{ height: 420, background: "#fafafc" }}
       >
         <Canvas camera={{ position: [0, 1.5, 9], fov: 50 }} gl={{ antialias: true, alpha: true }}>
           <Suspense fallback={null}>
@@ -253,21 +261,24 @@ export default function CryptoGraph3D({ detail }: { detail: AnalysisDetail }): R
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-4 text-xs" aria-label="Graph legend">
+      <div className="flex flex-wrap gap-2 text-xs" aria-label="Graph legend">
         {[
-          { color: "#af50ff", label: "IKE Endpoint" },
-          { color: "#4ade80", label: "Accepted algorithm" },
-          { color: "#fbbf24", label: "Weak / deprecated algorithm" },
-          { color: "#f87171", label: "Rejected proposal" },
-          { color: "#60a5fa", label: "Child SA / ESP" },
+          { color: "#0071e3", label: "IKE Endpoint" },
+          { color: "#34c759", label: "Accepted algorithm" },
+          { color: "#ff9500", label: "Weak / deprecated algorithm" },
+          { color: "#d70015", label: "Rejected proposal" },
+          { color: "#0066cc", label: "Child SA / ESP" },
         ].map(({ color, label }) => (
-          <span key={label} className="flex items-center gap-1.5">
+          <span
+            key={label}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[#e6e6e8] bg-[#fafafc] px-3 py-1 text-xs text-[#1d1d1f]"
+          >
             <span
               aria-hidden="true"
               className="inline-block h-2 w-2 rounded-full"
               style={{ background: color }}
             />
-            <span style={{ color }}>{label}</span>
+            <span>{label}</span>
           </span>
         ))}
       </div>
@@ -275,23 +286,23 @@ export default function CryptoGraph3D({ detail }: { detail: AnalysisDetail }): R
       {/* Node detail panel */}
       {selectedNode !== null && (
         <div
-          className="rounded border border-line bg-surface-raised p-3"
+          className="rounded-[20px] border border-[#e6e6e8] bg-[#ffffff] p-4"
           role="region"
           aria-label={`Node detail: ${selectedNode.label}`}
         >
-          <p className="font-medium mono text-sm">{selectedNode.label}</p>
-          <p className="text-xs text-ink-muted">
-            Type: <strong>{selectedNode.kind.replace(/_/g, " ")}</strong>
+          <p className="font-display text-sm font-semibold text-[#1d1d1f]">{selectedNode.label}</p>
+          <p className="text-xs text-[#707070]">
+            Type: <strong className="text-[#1d1d1f]">{selectedNode.kind.replace(/_/g, " ")}</strong>
           </p>
           {selectedNode.detail !== undefined && (
             <p
-              className="mt-1 text-sm"
+              className="mt-1 text-sm font-mono"
               style={{
                 color: isWeak(selectedNode)
-                  ? "#fbbf24"
+                  ? "#ff9500"
                   : selectedNode.detail.startsWith("✗")
-                    ? "#f87171"
-                    : "#4ade80",
+                    ? "#d70015"
+                    : "#34c759",
               }}
             >
               {selectedNode.detail}
@@ -301,7 +312,7 @@ export default function CryptoGraph3D({ detail }: { detail: AnalysisDetail }): R
       )}
 
       {graph.nodes.length <= 2 && (
-        <p className="text-sm text-ink-muted" role="note">
+        <p className="text-sm text-[#707070]" role="note">
           Insufficient IKE transform evidence in this capture to build a full graph. The graph shows
           only the observed endpoints.
         </p>

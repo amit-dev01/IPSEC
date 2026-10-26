@@ -34,10 +34,10 @@ export interface ScoreRadialProps {
 }
 
 function scoreColor(value: number | null): string {
-  if (value === null) return "#474747";
-  if (value >= 80) return "#4ade80";
-  if (value >= 50) return "#fbbf24";
-  return "#f87171";
+  if (value === null) return "#86868b";
+  if (value >= 80) return "#34c759";
+  if (value >= 50) return "#ff9500";
+  return "#ff3b30";
 }
 
 function scoreLabel(value: number | null): string {
@@ -62,9 +62,9 @@ function arcPath(cx: number, cy: number, r: number, startAngle: number, endAngle
 const CX = 110;
 const CY = 110;
 const OUTER_R = 82; // main donut ring radius
-const STROKE_W = 18; // donut stroke width
-const DOMAIN_GAP = 6; // gap between domain rings
-const DOMAIN_STROKE = 6; // domain ring stroke width
+const STROKE_W = 16; // donut stroke width
+const DOMAIN_GAP = 5; // gap between domain rings
+const DOMAIN_STROKE = 5; // domain ring stroke width
 
 // Six domain ring radii (inside the donut)
 const DOMAIN_RADII = [
@@ -131,11 +131,11 @@ function AnimatedArc({
 
   return (
     <>
-      {/* Track */}
+      {/* Light Apple Studio track */}
       <path
         d={trackPath}
         fill="none"
-        stroke="#1a1a1f"
+        stroke="#e6e6e8"
         strokeWidth={strokeWidth}
         strokeLinecap="round"
       />
@@ -162,9 +162,6 @@ export function ScoreRadial({
   const mainColor = scoreColor(securityScore);
   const mainLabel = scoreLabel(securityScore);
 
-  // Domain colors derived from score-like mapping — high = green, low = red
-  // For domain rings we use a simplified strong/weak mapping from the parent.
-  // The caller passes a 0–100 per-domain value.
   const shownDomains = domains.slice(0, DOMAIN_RADII.length);
 
   return (
@@ -182,19 +179,8 @@ export function ScoreRadial({
           aria-hidden="true"
           className="overflow-visible"
         >
-          {/* Outer glow filter */}
-          <defs>
-            <filter id="glow-ring" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-
           {/* Main security score donut */}
-          <g filter="url(#glow-ring)">
+          <g>
             <AnimatedArc
               cx={CX}
               cy={CY}
@@ -227,10 +213,11 @@ export function ScoreRadial({
                 x={CX}
                 y={CY - 10}
                 textAnchor="middle"
-                fill={mainColor}
-                fontSize="28"
+                fill="#1d1d1f"
+                fontSize="32"
                 fontWeight="700"
-                fontFamily="ui-monospace, monospace"
+                fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
+                letterSpacing="-0.03em"
               >
                 {securityScore}
               </text>
@@ -238,11 +225,10 @@ export function ScoreRadial({
                 x={CX}
                 y={CY + 10}
                 textAnchor="middle"
-                fill="#828384"
-                fontSize="10"
-                fontFamily="ui-sans-serif, sans-serif"
-                textLength={60}
-                lengthAdjust="spacing"
+                fill="#707070"
+                fontSize="11"
+                fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif"
+                letterSpacing="-0.01em"
               >
                 / 100
               </text>
@@ -251,8 +237,10 @@ export function ScoreRadial({
                 y={CY + 25}
                 textAnchor="middle"
                 fill={mainColor}
-                fontSize="9"
-                fontFamily="ui-monospace, monospace"
+                fontSize="10"
+                fontWeight="600"
+                fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif"
+                letterSpacing="0.04em"
               >
                 {mainLabel.toUpperCase()}
               </text>
@@ -263,9 +251,11 @@ export function ScoreRadial({
                 x={CX}
                 y={CY - 5}
                 textAnchor="middle"
-                fill="#474747"
-                fontSize="11"
-                fontFamily="ui-monospace, monospace"
+                fill="#86868b"
+                fontSize="12"
+                fontWeight="600"
+                fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif"
+                letterSpacing="0.04em"
               >
                 WITHHELD
               </text>
@@ -273,9 +263,9 @@ export function ScoreRadial({
                 x={CX}
                 y={CY + 12}
                 textAnchor="middle"
-                fill="#474747"
-                fontSize="8"
-                fontFamily="ui-sans-serif, sans-serif"
+                fill="#86868b"
+                fontSize="9"
+                fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif"
               >
                 insufficient evidence
               </text>
@@ -286,7 +276,7 @@ export function ScoreRadial({
         {/* Risk score pill — bottom overlay */}
         {riskScore !== null && (
           <div
-            className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full border border-sev-medium px-2 py-0.5 text-[10px] text-sev-medium tnum"
+            className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full border border-[#d6d6d6] bg-[#ffffff] px-2.5 py-0.5 text-[10px] font-semibold text-[#b64400] tnum shadow-none"
             aria-label={`Risk score: ${riskScore}`}
           >
             Risk {riskScore}
@@ -299,7 +289,7 @@ export function ScoreRadial({
         <ol className="w-full space-y-1.5" aria-label="Per-domain score breakdown">
           {shownDomains.map((d, i) => {
             const color = scoreColor(d.value);
-            const ringColor = DOMAIN_RADII[i] !== undefined ? color : "#474747";
+            const ringColor = DOMAIN_RADII[i] !== undefined ? color : "#86868b";
             return (
               <li key={d.label} className="flex items-center gap-2 text-xs">
                 {/* Color swatch matches the ring */}

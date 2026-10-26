@@ -57,15 +57,21 @@ export default function AuditPage(): ReactNode {
     query.isError && query.error instanceof ApiError && query.error.status === 404;
 
   return (
-    <section aria-labelledby="audit-heading">
-      <h1 id="audit-heading" className="text-xl font-semibold">
-        Tamper-Evident Audit Trail
-      </h1>
-      <p className="mt-1 max-w-3xl text-sm text-ink-muted">
-        Events are hash-chained (each event references the previous event&apos;s hash), making later
-        tampering detectable on verification. This is a <strong>tamper-evident audit log</strong> —
-        not a public blockchain and not an immutable hardware ledger.
-      </p>
+    <section aria-labelledby="audit-heading" className="space-y-6">
+      <div>
+        <h1
+          id="audit-heading"
+          className="font-display text-2xl font-semibold tracking-tight text-[#1d1d1f]"
+        >
+          Tamper-Evident Audit Trail
+        </h1>
+        <p className="mt-1 max-w-3xl text-xs text-[#707070]">
+          Events are hash-chained (each event references the previous event&apos;s hash), making
+          later tampering detectable on verification. This is a{" "}
+          <strong>tamper-evident audit log</strong> — not a public blockchain and not an immutable
+          hardware ledger.
+        </p>
+      </div>
 
       {unavailable ? (
         <div className="mt-4">
@@ -79,104 +85,128 @@ export default function AuditPage(): ReactNode {
         </div>
       ) : (
         <>
-          <fieldset className="mt-4 flex flex-wrap gap-3 text-sm">
-            <legend className="sr-only">Filter audit events</legend>
-            <label>
-              Action{" "}
-              <input
-                value={actionFilter}
-                onChange={(e) => {
-                  setActionFilter(e.target.value);
-                  setPage(0);
-                }}
-                placeholder="e.g. capture.uploaded"
-                className="rounded border border-line px-2 py-1"
-              />
-            </label>
-            <label>
-              Resource type{" "}
-              <input
-                value={resourceFilter}
-                onChange={(e) => {
-                  setResourceFilter(e.target.value);
-                  setPage(0);
-                }}
-                placeholder="e.g. capture"
-                className="rounded border border-line px-2 py-1"
-              />
-            </label>
-          </fieldset>
+          <div className="apple-card p-4">
+            <fieldset className="flex flex-wrap items-center gap-4 text-xs">
+              <legend className="sr-only">Filter audit events</legend>
+              <label className="flex items-center gap-2">
+                <span className="font-medium text-[#707070]">Action</span>
+                <input
+                  value={actionFilter}
+                  onChange={(e) => {
+                    setActionFilter(e.target.value);
+                    setPage(0);
+                  }}
+                  placeholder="e.g. capture.uploaded"
+                  className="rounded-full border border-[#d6d6d6] bg-white px-3.5 py-1.5 text-xs text-[#1d1d1f] focus:outline-none focus:border-[#0071e3] focus:ring-1 focus:ring-[#0071e3]"
+                />
+              </label>
+              <label className="flex items-center gap-2">
+                <span className="font-medium text-[#707070]">Resource type</span>
+                <input
+                  value={resourceFilter}
+                  onChange={(e) => {
+                    setResourceFilter(e.target.value);
+                    setPage(0);
+                  }}
+                  placeholder="e.g. capture"
+                  className="rounded-full border border-[#d6d6d6] bg-white px-3.5 py-1.5 text-xs text-[#1d1d1f] focus:outline-none focus:border-[#0071e3] focus:ring-1 focus:ring-[#0071e3]"
+                />
+              </label>
+            </fieldset>
+          </div>
 
           {query.isPending && <Skeleton label="Loading audit events" rows={5} />}
           {query.isError && !unavailable && (
-            <p role="alert" className="mt-3 text-sm text-sev-critical">
+            <p role="alert" className="text-xs text-[#d70015]">
               Could not load audit events.{" "}
               {query.error instanceof ApiError ? query.error.userMessage() : ""}
             </p>
           )}
           {query.isSuccess && query.data.items.length === 0 && (
-            <p className="mt-3 text-sm text-ink-muted">No audit events match.</p>
+            <div className="apple-card p-12 text-center text-xs text-[#707070]">
+              No audit events match the specified filter criteria.
+            </div>
           )}
           {query.isSuccess && query.data.items.length > 0 && (
-            <table className="mt-3 w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-line text-left">
-                  <th scope="col" className="py-2 pr-3">
-                    Timestamp (UTC)
-                  </th>
-                  <th scope="col" className="py-2 pr-3">
-                    Actor
-                  </th>
-                  <th scope="col" className="py-2 pr-3">
-                    Action
-                  </th>
-                  <th scope="col" className="py-2 pr-3">
-                    Resource
-                  </th>
-                  <th scope="col" className="py-2">
-                    Event hash ← previous
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {query.data.items.map((event, i) => (
-                  <tr key={event.id ?? i} className="border-b border-line align-top">
-                    <td className="tnum py-2 pr-3">{event.timestamp ?? event.created_at ?? "—"}</td>
-                    <td className="py-2 pr-3">{event.actor ?? event.actor_user_id ?? "system"}</td>
-                    <td className="mono py-2 pr-3 text-xs">{event.action ?? "—"}</td>
-                    <td className="mono py-2 pr-3 text-xs">
-                      {event.resource_type ?? "—"}/{event.resource_id ?? "—"}
-                    </td>
-                    <td className="mono py-2 text-xs">
-                      {(event.event_hash ?? event.hash ?? "not reported").slice(0, 12)}… ←{" "}
-                      {event.previous_hash ? `${event.previous_hash.slice(0, 12)}…` : "genesis"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="apple-card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-[#e6e6e8] bg-[#fafafc] text-[#707070]">
+                      <th scope="col" className="px-4 py-3 font-medium">
+                        Timestamp (UTC)
+                      </th>
+                      <th scope="col" className="px-4 py-3 font-medium">
+                        Actor
+                      </th>
+                      <th scope="col" className="px-4 py-3 font-medium">
+                        Action
+                      </th>
+                      <th scope="col" className="px-4 py-3 font-medium">
+                        Resource
+                      </th>
+                      <th scope="col" className="px-4 py-3 font-medium">
+                        Event Hash Chain
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#e6e6e8] bg-white">
+                    {query.data.items.map((event, i) => (
+                      <tr key={event.id ?? i} className="hover:bg-[#fafafc]">
+                        <td className="px-4 py-3 font-mono text-[#707070]">
+                          {event.timestamp ?? event.created_at ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 font-medium text-[#1d1d1f]">
+                          {event.actor ?? event.actor_user_id ?? "system"}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-[#0066cc]">
+                          {event.action ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-[#1d1d1f]">
+                          {event.resource_type ?? "—"}/{event.resource_id ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-[11px] text-[#707070]">
+                          <span className="text-[#1d1d1f]">
+                            {(event.event_hash ?? event.hash ?? "not reported").slice(0, 12)}…
+                          </span>{" "}
+                          ←{" "}
+                          <span className="text-[#86868b]">
+                            {event.previous_hash
+                              ? `${event.previous_hash.slice(0, 12)}…`
+                              : "genesis"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-[#e6e6e8] bg-[#fafafc] px-4 py-3 text-xs">
+                <span className="text-[#707070]">
+                  Page {page + 1} · {query.data?.total ?? 0} events
+                </span>
+                <nav aria-label="Audit pages" className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={page === 0}
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                    className="apple-btn-secondary text-xs disabled:opacity-40"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    type="button"
+                    disabled={(query.data?.total ?? 0) <= (page + 1) * PAGE_SIZE}
+                    onClick={() => setPage((p) => p + 1)}
+                    className="apple-btn-secondary text-xs disabled:opacity-40"
+                  >
+                    Next
+                  </button>
+                </nav>
+              </div>
+            </div>
           )}
-          <nav aria-label="Audit pages" className="mt-3 flex items-center gap-3 text-sm">
-            <button
-              type="button"
-              disabled={page === 0}
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              className="rounded border border-line px-2 py-1 disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <span className="tnum">
-              Page {page + 1} · {query.data?.total ?? 0} events
-            </span>
-            <button
-              type="button"
-              disabled={(query.data?.total ?? 0) <= (page + 1) * PAGE_SIZE}
-              onClick={() => setPage((p) => p + 1)}
-              className="rounded border border-line px-2 py-1 disabled:opacity-50"
-            >
-              Next
-            </button>
-          </nav>
         </>
       )}
     </section>

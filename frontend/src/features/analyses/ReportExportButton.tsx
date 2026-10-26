@@ -48,11 +48,11 @@ export default function ReportExportButton({ detail }: ReportExportButtonProps):
       let y = 14;
 
       // Header Banner
-      doc.setFillColor(18, 18, 24);
+      doc.setFillColor(29, 29, 31);
       doc.rect(0, 0, pageWidth, 28, "F");
 
-      // Signal Violet accent stripe
-      doc.setFillColor(175, 80, 255);
+      // Pricing Blue accent stripe
+      doc.setFillColor(0, 113, 227);
       doc.rect(0, 28, pageWidth, 2, "F");
 
       doc.setTextColor(255, 255, 255);
@@ -269,12 +269,12 @@ export default function ReportExportButton({ detail }: ReportExportButtonProps):
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2.5">
       <button
         type="button"
         onClick={() => void handleExportPdf()}
         disabled={generatingPdf}
-        className="inline-flex items-center gap-1.5 rounded border border-signal-violet bg-signal-violet/10 px-3 py-1.5 text-xs font-medium text-signal-violet transition hover:bg-signal-violet hover:text-white disabled:opacity-50"
+        className="apple-btn-primary text-xs"
       >
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
@@ -287,11 +287,7 @@ export default function ReportExportButton({ detail }: ReportExportButtonProps):
         {generatingPdf ? "Compiling PDF..." : "Export Compliance PDF"}
       </button>
 
-      <button
-        type="button"
-        onClick={handleExportJson}
-        className="inline-flex items-center gap-1.5 rounded border border-line bg-surface-raised px-3 py-1.5 text-xs font-medium text-ink transition hover:border-signal-violet hover:text-signal-violet"
-      >
+      <button type="button" onClick={handleExportJson} className="apple-btn-secondary text-xs">
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
             strokeLinecap="round"

@@ -38,7 +38,7 @@ export function SourceBadge({ source }: { source: EvidenceSource }): ReactNode {
     <span
       role="img"
       aria-label={`Source: ${meta.label}`}
-      className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium ${meta.className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-tight bg-white ${meta.className}`}
     >
       <span aria-hidden="true">{meta.icon}</span>
       {meta.label}
@@ -49,11 +49,23 @@ export function SourceBadge({ source }: { source: EvidenceSource }): ReactNode {
 export type Severity = "critical" | "high" | "medium" | "low" | "info";
 
 const SEVERITY_META: Record<Severity, { label: string; icon: string; className: string }> = {
-  critical: { label: "Critical", icon: "⬟", className: "text-sev-critical border-sev-critical" },
-  high: { label: "High", icon: "◆", className: "text-sev-high border-sev-high" },
-  medium: { label: "Medium", icon: "■", className: "text-sev-medium border-sev-medium" },
-  low: { label: "Low", icon: "▲", className: "text-sev-low border-sev-low" },
-  info: { label: "Info", icon: "●", className: "text-sev-info border-sev-info" },
+  critical: {
+    label: "Critical",
+    icon: "⬟",
+    className: "text-[#d70015] border-[#d70015]/30 bg-[#d70015]/5",
+  },
+  high: {
+    label: "High",
+    icon: "◆",
+    className: "text-[#ff9500] border-[#ff9500]/30 bg-[#ff9500]/5",
+  },
+  medium: {
+    label: "Medium",
+    icon: "■",
+    className: "text-[#b64400] border-[#b64400]/30 bg-[#b64400]/5",
+  },
+  low: { label: "Low", icon: "▲", className: "text-[#0071e3] border-[#0071e3]/30 bg-[#0071e3]/5" },
+  info: { label: "Info", icon: "●", className: "text-[#86868b] border-[#e6e6e8] bg-[#ffffff]" },
 };
 
 export function SeverityBadge({ severity }: { severity: Severity }): ReactNode {
@@ -62,7 +74,7 @@ export function SeverityBadge({ severity }: { severity: Severity }): ReactNode {
     <span
       role="img"
       aria-label={`Severity: ${meta.label}`}
-      className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium ${meta.className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold tracking-tight ${meta.className}`}
     >
       <span aria-hidden="true">{meta.icon}</span>
       {meta.label}
@@ -82,16 +94,16 @@ export function ScoreBar({
   if (value === null) {
     return (
       <div>
-        <p className="text-sm font-medium">{label}</p>
-        <p className="text-sm text-ink-muted">Unknown — insufficient evidence to score.</p>
+        <p className="text-sm font-semibold text-[#1d1d1f] tracking-tight">{label}</p>
+        <p className="text-sm text-[#707070]">Unknown — insufficient evidence to score.</p>
       </div>
     );
   }
   const pct = Math.round((Math.min(max, Math.max(0, value)) / max) * 100);
   return (
     <div>
-      <p className="text-sm font-medium">
-        {label}: <span className="tnum">{value}</span> / {max}
+      <p className="text-sm font-semibold text-[#1d1d1f] tracking-tight">
+        {label}: <span className="tnum font-bold">{value}</span> / {max}
       </p>
       <div
         role="meter"
@@ -99,9 +111,9 @@ export function ScoreBar({
         aria-valuenow={value}
         aria-valuemin={0}
         aria-valuemax={max}
-        className="mt-1 h-2 w-48 overflow-hidden rounded bg-surface-sunken"
+        className="mt-1.5 h-2 w-48 overflow-hidden rounded-full bg-[#e6e6e8]"
       >
-        <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
+        <div className="h-full rounded-full bg-[#0071e3]" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );

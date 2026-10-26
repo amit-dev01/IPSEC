@@ -245,35 +245,35 @@ export default function LiveAnalysisFeed({ detail }: LiveAnalysisFeedProps): Rea
   });
 
   return (
-    <div className="space-y-4 py-4">
+    <div className="space-y-4 py-2">
       {/* Top Banner and Controls */}
-      <div className="flex flex-col gap-3 rounded border border-line bg-surface-raised p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="apple-card p-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="relative flex h-3 w-3">
             <span
               className={`absolute inline-flex h-full w-full animate-ping rounded-full ${
-                isStreaming ? "bg-signal-violet opacity-75" : "bg-sev-low opacity-40"
+                isStreaming ? "bg-[#0071e3] opacity-75" : "bg-[#34c759] opacity-40"
               }`}
             />
             <span
               className={`relative inline-flex h-3 w-3 rounded-full ${
-                isStreaming ? "bg-signal-violet" : "bg-sev-low"
+                isStreaming ? "bg-[#0071e3]" : "bg-[#34c759]"
               }`}
             />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-ink-bright">
+            <h3 className="font-display text-sm font-semibold tracking-tight text-[#1d1d1f]">
               {isStreaming ? "LIVE ANALYSIS TELEMETRY STREAM" : "ANALYSIS TELEMETRY STREAM"}
             </h3>
-            <p className="text-xs text-ink-muted">{currentPhase}</p>
+            <p className="text-xs text-[#707070]">{currentPhase}</p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={() => void startStream()}
-            className="inline-flex items-center gap-1.5 rounded border border-line bg-surface-sunken px-2.5 py-1 text-xs font-medium text-ink transition hover:border-signal-violet hover:text-signal-violet"
+            className="apple-btn-secondary text-xs"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
@@ -286,12 +286,12 @@ export default function LiveAnalysisFeed({ detail }: LiveAnalysisFeedProps): Rea
             Replay Stream
           </button>
 
-          <label className="flex items-center gap-1 text-xs text-ink-muted">
+          <label className="flex items-center gap-1.5 text-xs text-[#707070] cursor-pointer">
             <input
               type="checkbox"
               checked={autoScroll}
               onChange={(e) => setAutoScroll(e.target.checked)}
-              className="rounded border-line text-signal-violet focus:ring-0"
+              className="rounded border-[#d6d6d6] text-[#0071e3] focus:ring-[#0071e3]/20"
             />
             Auto-scroll
           </label>
@@ -299,70 +299,70 @@ export default function LiveAnalysisFeed({ detail }: LiveAnalysisFeedProps): Rea
       </div>
 
       {/* Progress Bar */}
-      <div className="space-y-1.5">
+      <div className="apple-card p-4 space-y-2">
         <div className="flex justify-between text-xs">
-          <span className="font-medium text-ink-muted">Pipeline Progress</span>
-          <span className="mono font-semibold text-signal-violet">{progress}%</span>
+          <span className="font-medium text-[#707070]">Pipeline Execution Progress</span>
+          <span className="font-mono font-semibold text-[#0071e3]">{progress}%</span>
         </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-surface-sunken">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-[#e6e6e8]">
           <div
-            className="h-full bg-gradient-to-r from-signal-violet/60 via-signal-violet to-emerald-400 transition-all duration-300 ease-out"
+            className="h-full rounded-full bg-[#0071e3] transition-all duration-300 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2">
-        {(["all", "findings", "phases"] as const).map((f) => (
-          <button
-            key={f}
-            type="button"
-            onClick={() => setFilter(f)}
-            className={`rounded px-2.5 py-1 text-xs font-medium transition ${
-              filter === f
-                ? "bg-signal-violet text-white"
-                : "bg-surface-raised text-ink-muted hover:text-ink"
-            }`}
-          >
-            {f === "all" ? "All Events" : f === "findings" ? "Security Findings" : "Phases"}
-          </button>
-        ))}
-        <span className="ml-auto text-xs text-ink-muted self-center">
-          {filteredLogs.length} events logged
-        </span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex gap-2">
+          {(["all", "findings", "phases"] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setFilter(f)}
+              className={`rounded-full px-3.5 py-1 text-xs font-medium transition ${
+                filter === f
+                  ? "bg-[#1d1d1f] text-white shadow-sm"
+                  : "border border-[#e6e6e8] bg-white text-[#707070] hover:text-[#1d1d1f]"
+              }`}
+            >
+              {f === "all" ? "All Events" : f === "findings" ? "Security Findings" : "Phases"}
+            </button>
+          ))}
+        </div>
+        <span className="text-xs text-[#707070]">{filteredLogs.length} events logged</span>
       </div>
 
       {/* Terminal Console View */}
       <div
         ref={logContainerRef}
-        className="mono h-80 overflow-y-auto rounded border border-line bg-surface-sunken p-3 text-xs leading-relaxed"
+        className="font-mono h-80 overflow-y-auto rounded-[24px] border border-[#e6e6e8] bg-[#fafafc] p-4 text-xs leading-relaxed"
       >
         {filteredLogs.length === 0 ? (
-          <div className="py-12 text-center text-ink-muted">Waiting for event telemetry...</div>
+          <div className="py-12 text-center text-[#707070]">Waiting for event telemetry...</div>
         ) : (
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             {filteredLogs.map((log) => {
-              let tagColor = "text-ink-muted";
-              let msgColor = "text-ink";
+              let tagColor = "text-[#707070]";
+              let msgColor = "text-[#1d1d1f]";
 
               if (log.type === "phase") {
-                tagColor = "text-signal-violet font-semibold";
-                msgColor = "text-ink-bright font-medium";
+                tagColor = "text-[#0071e3] font-semibold";
+                msgColor = "text-[#1d1d1f] font-medium";
               } else if (log.type === "critical") {
-                tagColor = "text-sev-critical font-bold";
-                msgColor = "text-sev-critical";
+                tagColor = "text-[#d70015] font-bold";
+                msgColor = "text-[#d70015]";
               } else if (log.type === "warning") {
-                tagColor = "text-sev-medium font-bold";
-                msgColor = "text-sev-medium";
+                tagColor = "text-[#ff9500] font-bold";
+                msgColor = "text-[#b64400]";
               } else if (log.type === "success") {
-                tagColor = "text-sev-low font-bold";
-                msgColor = "text-sev-low font-medium";
+                tagColor = "text-[#34c759] font-bold";
+                msgColor = "text-[#1d1d1f] font-medium";
               }
 
               return (
-                <div key={log.id} className="flex items-start gap-2 py-0.5">
-                  <span className="select-none text-[10px] text-ink-muted/70">{log.timestamp}</span>
+                <div key={log.id} className="flex items-start gap-2.5 py-0.5">
+                  <span className="select-none text-[11px] text-[#86868b]">{log.timestamp}</span>
                   <span className={`select-none text-[11px] ${tagColor}`}>[{log.stage}]</span>
                   <span className={`flex-1 break-words ${msgColor}`}>{log.message}</span>
                 </div>

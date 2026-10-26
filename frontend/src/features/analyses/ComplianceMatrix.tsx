@@ -114,23 +114,19 @@ export default function ComplianceMatrix({ detail }: ComplianceMatrixProps): Rea
   ];
 
   return (
-    <div className="space-y-6 py-4">
+    <div className="space-y-6">
       {/* Header and Summary Cards */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight text-ink-bright">
+          <h2 className="font-display text-xl font-semibold tracking-tight text-[#1d1d1f]">
             Cryptographic Compliance Matrix
           </h2>
-          <p className="text-xs text-ink-muted">
+          <p className="mt-1 text-xs text-[#707070]">
             Cross-referenced evaluation against RFC specifications, NIST SP 800-77 Rev. 1, and CNSA
             2.0.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={exportCsv}
-          className="inline-flex items-center gap-1.5 rounded border border-line bg-surface-raised px-3 py-1.5 text-xs font-medium text-ink transition hover:border-signal-violet hover:text-signal-violet"
-        >
+        <button type="button" onClick={exportCsv} className="apple-btn-secondary text-xs">
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
               strokeLinecap="round"
@@ -145,62 +141,64 @@ export default function ComplianceMatrix({ detail }: ComplianceMatrixProps): Rea
 
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-        <div className="rounded border border-line bg-surface-sunken p-3">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-ink-muted">
+        <div className="apple-card p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#707070]">
             Standards
           </p>
-          <p className="mt-1 text-2xl font-semibold tracking-tight text-ink-bright">
+          <p className="font-display mt-2 text-3xl font-semibold tracking-tight text-[#1d1d1f]">
             {stats.total}
           </p>
-          <p className="text-[10px] text-ink-muted">Audited controls</p>
+          <p className="mt-1 text-[11px] text-[#707070]">Audited controls</p>
         </div>
-        <div className="rounded border border-line bg-surface-sunken p-3">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-sev-low">Compliant</p>
-          <p className="mt-1 text-2xl font-semibold tracking-tight text-sev-low">
+        <div className="apple-card p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#0071e3]">
+            Compliant
+          </p>
+          <p className="font-display mt-2 text-3xl font-semibold tracking-tight text-[#0071e3]">
             {stats.compliant}
           </p>
-          <p className="text-[10px] text-ink-muted">Passes RFC / NIST criteria</p>
+          <p className="mt-1 text-[11px] text-[#707070]">Passes RFC / NIST criteria</p>
         </div>
-        <div className="rounded border border-line bg-surface-sunken p-3">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-sev-medium">
+        <div className="apple-card p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#ff9500]">
             Warnings
           </p>
-          <p className="mt-1 text-2xl font-semibold tracking-tight text-sev-medium">
+          <p className="font-display mt-2 text-3xl font-semibold tracking-tight text-[#ff9500]">
             {stats.warning}
           </p>
-          <p className="text-[10px] text-ink-muted">Suboptimal / legacy</p>
+          <p className="mt-1 text-[11px] text-[#707070]">Suboptimal / legacy</p>
         </div>
-        <div className="rounded border border-line bg-surface-sunken p-3">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-sev-critical">
+        <div className="apple-card p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#d70015]">
             Non-Compliant
           </p>
-          <p className="mt-1 text-2xl font-semibold tracking-tight text-sev-critical">
+          <p className="font-display mt-2 text-3xl font-semibold tracking-tight text-[#d70015]">
             {stats.nonCompliant}
           </p>
-          <p className="text-[10px] text-ink-muted">Prohibited algorithms</p>
+          <p className="mt-1 text-[11px] text-[#707070]">Prohibited algorithms</p>
         </div>
-        <div className="col-span-2 rounded border border-line bg-surface-sunken p-3 sm:col-span-1">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-signal-violet">
+        <div className="col-span-2 apple-card p-4 sm:col-span-1 border-[#0071e3]/30 bg-[#0071e3]/5">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#0071e3]">
             Compliance Index
           </p>
-          <p className="mt-1 text-2xl font-semibold tracking-tight text-signal-violet">
+          <p className="font-display mt-2 text-3xl font-semibold tracking-tight text-[#0071e3]">
             {stats.score}%
           </p>
-          <p className="text-[10px] text-ink-muted">Observed pass ratio</p>
+          <p className="mt-1 text-[11px] text-[#707070]">Observed pass ratio</p>
         </div>
       </div>
 
       {/* Filters Bar */}
-      <div className="flex flex-col gap-3 rounded border border-line bg-surface-raised p-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium text-ink-muted">Domain:</span>
+      <div className="apple-card p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs font-semibold text-[#707070] mr-1">Domain:</span>
           <button
             type="button"
             onClick={() => setSelectedDomain("all")}
-            className={`rounded px-2.5 py-1 text-xs font-medium transition ${
+            className={`rounded-full px-3 py-1 text-xs font-medium tracking-tight transition ${
               selectedDomain === "all"
-                ? "bg-signal-violet text-white"
-                : "bg-surface-sunken text-ink-muted hover:text-ink"
+                ? "bg-[#1d1d1f] text-white shadow-sm"
+                : "bg-[#f5f5f7] text-[#707070] hover:bg-[#e6e6e8] hover:text-[#1d1d1f]"
             }`}
           >
             All
@@ -210,10 +208,10 @@ export default function ComplianceMatrix({ detail }: ComplianceMatrixProps): Rea
               key={dom}
               type="button"
               onClick={() => setSelectedDomain(dom)}
-              className={`rounded px-2.5 py-1 text-xs font-medium transition ${
+              className={`rounded-full px-3 py-1 text-xs font-medium tracking-tight transition ${
                 selectedDomain === dom
-                  ? "bg-signal-violet text-white"
-                  : "bg-surface-sunken text-ink-muted hover:text-ink"
+                  ? "bg-[#1d1d1f] text-white shadow-sm"
+                  : "bg-[#f5f5f7] text-[#707070] hover:bg-[#e6e6e8] hover:text-[#1d1d1f]"
               }`}
             >
               {dom}
@@ -221,13 +219,13 @@ export default function ComplianceMatrix({ detail }: ComplianceMatrixProps): Rea
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1.5 text-xs text-ink-muted">
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-xs font-medium text-[#707070]">
             Verdict:
             <select
               value={selectedVerdict}
               onChange={(e) => setSelectedVerdict(e.target.value)}
-              className="rounded border border-line bg-surface-sunken px-2 py-1 text-xs text-ink outline-none focus:border-signal-violet"
+              className="rounded-full border border-[#d6d6d6] bg-white px-3 py-1 text-xs text-[#1d1d1f] outline-none focus:border-[#0071e3]"
             >
               <option value="all">All Verdicts</option>
               <option value="compliant">Compliant</option>
@@ -242,28 +240,28 @@ export default function ComplianceMatrix({ detail }: ComplianceMatrixProps): Rea
             placeholder="Search standards, RFC, algorithm..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="rounded border border-line bg-surface-sunken px-2.5 py-1 text-xs text-ink placeholder:text-ink-muted focus:border-signal-violet focus:outline-none"
+            className="rounded-full border border-[#d6d6d6] bg-white px-3.5 py-1 text-xs text-[#1d1d1f] placeholder:text-[#86868b] focus:border-[#0071e3] focus:outline-none"
           />
         </div>
       </div>
 
       {/* Compliance Table */}
-      <div className="overflow-x-auto rounded border border-line bg-surface-raised">
+      <div className="apple-card overflow-x-auto p-6">
         <table className="w-full text-left text-xs">
-          <thead className="border-b border-line bg-surface-sunken text-[11px] uppercase tracking-wider text-ink-muted">
+          <thead className="border-b border-[#e6e6e8] text-[11px] font-semibold uppercase tracking-wider text-[#707070]">
             <tr>
-              <th className="px-4 py-3 font-semibold">Standard & Algorithm</th>
-              <th className="px-3 py-3 font-semibold">Domain</th>
-              <th className="px-3 py-3 font-semibold">RFC Citation</th>
-              <th className="px-3 py-3 font-semibold">Standard Level</th>
-              <th className="px-3 py-3 font-semibold">Observed in Capture</th>
-              <th className="px-4 py-3 font-semibold">Verdict</th>
+              <th className="pb-3 pr-4">Standard & Algorithm</th>
+              <th className="pb-3 pr-4">Domain</th>
+              <th className="pb-3 pr-4">RFC Citation</th>
+              <th className="pb-3 pr-4">Standard Level</th>
+              <th className="pb-3 pr-4">Observed in Capture</th>
+              <th className="pb-3">Verdict</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-line">
+          <tbody className="divide-y divide-[#f5f5f7]">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-ink-muted">
+                <td colSpan={6} className="py-8 text-center text-[#707070]">
                   No standards match the selected filters.
                 </td>
               </tr>
@@ -272,51 +270,50 @@ export default function ComplianceMatrix({ detail }: ComplianceMatrixProps): Rea
                 const isExpanded = expandedId === item.id;
                 const v = item.result.verdict;
 
-                let verdictBg = "bg-surface-sunken text-ink-muted border-line";
+                let verdictBg = "bg-[#f5f5f7] text-[#707070] border-[#e6e6e8]";
                 let verdictIcon = "—";
                 let verdictLabel = "NOT OBSERVED";
 
                 if (v === "compliant") {
-                  verdictBg = "bg-sev-low/10 text-sev-low border-sev-low/30";
+                  verdictBg = "bg-[#0071e3]/10 text-[#0071e3] border-[#0071e3]/30";
                   verdictIcon = "✓";
                   verdictLabel = "COMPLIANT";
                 } else if (v === "warning") {
-                  verdictBg = "bg-sev-medium/10 text-sev-medium border-sev-medium/30";
+                  verdictBg = "bg-[#ff9500]/10 text-[#ff9500] border-[#ff9500]/30";
                   verdictIcon = "▲";
                   verdictLabel = "LEGACY / WARN";
                 } else if (v === "non-compliant") {
-                  verdictBg = "bg-sev-critical/10 text-sev-critical border-sev-critical/30";
+                  verdictBg = "bg-[#d70015]/10 text-[#d70015] border-[#d70015]/30";
                   verdictIcon = "✗";
                   verdictLabel = "VIOLATION";
                 }
 
-                let reqClass = "text-ink-muted";
-                if (item.requirement === "MUST") reqClass = "text-signal-violet font-semibold";
-                else if (item.requirement === "MUST NOT")
-                  reqClass = "text-sev-critical font-semibold";
+                let reqClass = "text-[#707070]";
+                if (item.requirement === "MUST") reqClass = "text-[#0071e3] font-bold";
+                else if (item.requirement === "MUST NOT") reqClass = "text-[#d70015] font-bold";
 
                 return (
                   <tr
                     key={item.id}
                     onClick={() => setExpandedId(isExpanded ? null : item.id)}
-                    className="cursor-pointer transition-colors hover:bg-surface-sunken/60"
+                    className="cursor-pointer transition-colors hover:bg-[#fafafc]"
                   >
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-ink-bright">{item.title}</div>
-                      <div className="mono text-[11px] text-ink-muted">{item.algorithm}</div>
+                    <td className="py-3.5 pr-4">
+                      <div className="font-semibold text-[#1d1d1f]">{item.title}</div>
+                      <div className="mono text-[11px] text-[#707070]">{item.algorithm}</div>
                     </td>
-                    <td className="px-3 py-3">
-                      <span className="inline-block rounded border border-line bg-surface-sunken px-2 py-0.5 text-[10px] font-medium text-ink-muted">
+                    <td className="py-3.5 pr-4">
+                      <span className="inline-block rounded-full border border-[#e6e6e8] bg-[#ffffff] px-2.5 py-0.5 text-[10px] font-medium text-[#707070]">
                         {item.domain}
                       </span>
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="py-3.5 pr-4">
                       <a
                         href={item.rfcUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="mono inline-flex items-center gap-1 font-medium text-signal-violet underline hover:text-signal-violet/80"
+                        className="mono inline-flex items-center gap-1 font-semibold text-[#0066cc] underline hover:text-[#0077ed]"
                       >
                         {item.rfc}
                         <svg
@@ -333,23 +330,23 @@ export default function ComplianceMatrix({ detail }: ComplianceMatrixProps): Rea
                           />
                         </svg>
                       </a>
-                      <div className="text-[10px] text-ink-muted">{item.nistRef}</div>
+                      <div className="text-[10px] text-[#707070]">{item.nistRef}</div>
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="py-3.5 pr-4">
                       <span className={`text-xs ${reqClass}`}>{item.requirement}</span>
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="py-3.5 pr-4">
                       {item.result.observed ? (
-                        <div className="mono font-semibold text-ink-bright">
+                        <div className="mono font-semibold text-[#1d1d1f]">
                           {item.result.observedValue ?? "Detected"}
                         </div>
                       ) : (
-                        <span className="text-ink-muted italic">Not observable</span>
+                        <span className="text-[#86868b] italic">Not observable</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="py-3.5">
                       <span
-                        className={`inline-flex items-center gap-1.5 rounded border px-2.5 py-1 text-[11px] font-semibold tracking-wider ${verdictBg}`}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-wider ${verdictBg}`}
                       >
                         <span>{verdictIcon}</span>
                         <span>{verdictLabel}</span>
@@ -365,38 +362,38 @@ export default function ComplianceMatrix({ detail }: ComplianceMatrixProps): Rea
 
       {/* Expanded Details Drawer */}
       {expandedId && (
-        <div className="rounded border border-signal-violet/40 bg-surface-raised p-4 transition-all">
+        <div className="apple-card p-6 border-[#0071e3]/30 bg-[#fafafc] transition-all">
           {(() => {
             const item = evaluations.find((e) => e.id === expandedId);
             if (!item) return null;
             return (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-semibold text-ink-bright">
+                  <h4 className="font-display text-base font-semibold text-[#1d1d1f]">
                     {item.title} ({item.algorithm})
                   </h4>
                   <button
                     type="button"
                     onClick={() => setExpandedId(null)}
-                    className="text-xs text-ink-muted hover:text-ink"
+                    className="text-xs text-[#707070] hover:text-[#1d1d1f]"
                   >
                     ✕ Close details
                   </button>
                 </div>
-                <p className="text-xs text-ink">{item.description}</p>
-                <div className="mt-2 rounded bg-surface-sunken p-2.5 text-xs">
-                  <span className="font-semibold text-signal-violet">Audit Evaluation Note: </span>
-                  <span className="text-ink">{item.result.notes}</span>
+                <p className="text-xs leading-relaxed text-[#1d1d1f]">{item.description}</p>
+                <div className="rounded-xl bg-white border border-[#e6e6e8] p-3 text-xs">
+                  <span className="font-semibold text-[#0071e3]">Audit Evaluation Note: </span>
+                  <span className="text-[#1d1d1f]">{item.result.notes}</span>
                 </div>
-                <div className="flex flex-wrap gap-4 text-[11px] text-ink-muted pt-1">
+                <div className="flex flex-wrap gap-4 text-[11px] text-[#707070] pt-1">
                   <span>
-                    Requirement: <strong>{item.requirement}</strong>
+                    Requirement: <strong className="text-[#1d1d1f]">{item.requirement}</strong>
                   </span>
                   <span>
-                    Specification: <strong>{item.rfc}</strong>
+                    Specification: <strong className="text-[#1d1d1f]">{item.rfc}</strong>
                   </span>
                   <span>
-                    Authority Guideline: <strong>{item.nistRef}</strong>
+                    Authority Guideline: <strong className="text-[#1d1d1f]">{item.nistRef}</strong>
                   </span>
                 </div>
               </div>

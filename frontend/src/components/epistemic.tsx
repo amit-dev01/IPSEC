@@ -28,13 +28,13 @@ export function ProvenanceBadge({
 }): ReactNode {
   const vis = visibility !== undefined ? VISIBILITY_META[visibility] : undefined;
   return (
-    <span className="inline-flex flex-wrap items-center gap-1">
+    <span className="inline-flex flex-wrap items-center gap-1.5">
       <SourceBadge source={source} />
       {vis !== undefined && visibility !== "visible" && (
         <span
           role="img"
           aria-label={`Visibility: ${vis.label}`}
-          className="inline-flex items-center gap-1 rounded border border-line px-1.5 py-0.5 text-xs text-ink-muted"
+          className="inline-flex items-center gap-1 rounded-full border border-[#e6e6e8] bg-[#ffffff] px-2.5 py-0.5 text-xs font-medium text-[#707070]"
         >
           <span aria-hidden="true">{vis.icon}</span>
           {vis.label}
@@ -61,17 +61,19 @@ export function ConfidenceMeter({
   if (value === null || !Number.isFinite(value)) {
     return (
       <div>
-        <p className="text-sm font-medium">{label}</p>
-        <UnknownValue reason="No confidence value was reported." />
-        <p className="mt-1 text-xs text-ink-muted">{description}</p>
+        <p className="text-sm font-semibold text-[#1d1d1f] tracking-tight">{label}</p>
+        <div className="mt-1">
+          <UnknownValue reason="No confidence value was reported." />
+        </div>
+        <p className="mt-1.5 text-xs text-[#707070]">{description}</p>
       </div>
     );
   }
   const pct = Math.round(Math.min(1, Math.max(0, value)) * 100);
   return (
     <div>
-      <p className="text-sm font-medium">
-        {label}: <span className="tnum">{pct}%</span>
+      <p className="text-sm font-semibold text-[#1d1d1f] tracking-tight">
+        {label}: <span className="tnum font-bold">{pct}%</span>
       </p>
       <div
         role="meter"
@@ -79,14 +81,16 @@ export function ConfidenceMeter({
         aria-valuenow={pct}
         aria-valuemin={0}
         aria-valuemax={100}
-        className="mt-1 h-2 w-48 overflow-hidden rounded bg-surface-sunken"
+        className="mt-1.5 h-2 w-48 overflow-hidden rounded-full bg-[#e6e6e8]"
       >
         <div
-          className={isProtocol ? "h-full bg-accent" : "h-full bg-prov-inferred"}
+          className={
+            isProtocol ? "h-full rounded-full bg-[#0071e3]" : "h-full rounded-full bg-[#0066cc]"
+          }
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="mt-1 text-xs text-ink-muted">{description}</p>
+      <p className="mt-1.5 text-xs text-[#707070]">{description}</p>
     </div>
   );
 }
@@ -98,16 +102,16 @@ export interface FrameRef {
 
 export function FrameReferenceList({ frames }: { frames: readonly FrameRef[] }): ReactNode {
   if (frames.length === 0) {
-    return <span className="text-xs text-ink-muted">No frame references</span>;
+    return <span className="text-xs text-[#707070]">No frame references</span>;
   }
   return (
-    <ul aria-label="Packet frame references" className="flex flex-wrap gap-1">
+    <ul aria-label="Packet frame references" className="flex flex-wrap gap-1.5">
       {frames.map((ref, index) => {
         const frame = ref.frame ?? "?";
         return (
           <li
             key={`${String(frame)}-${index}`}
-            className="mono rounded border border-line bg-surface-sunken px-1.5 py-0.5 text-xs"
+            className="mono rounded-full border border-[#e6e6e8] bg-[#ffffff] px-2.5 py-0.5 text-xs text-[#1d1d1f]"
           >
             #{String(frame)}
           </li>
@@ -123,8 +127,10 @@ export function FrameReferenceList({ frames }: { frames: readonly FrameRef[] }):
  */
 export function UnknownValue({ reason }: { reason: string }): ReactNode {
   return (
-    <span className="inline-flex items-start gap-1 rounded border border-sev-medium bg-surface-sunken px-2 py-1 text-xs text-ink">
-      <span aria-hidden="true">?</span>
+    <span className="inline-flex items-start gap-1.5 rounded-full border border-[#d6d6d6] bg-[#fafafc] px-3 py-1 text-xs text-[#1d1d1f]">
+      <span aria-hidden="true" className="font-bold text-[#b64400]">
+        ?
+      </span>
       <span>
         <strong>Unknown.</strong> {reason}
       </span>

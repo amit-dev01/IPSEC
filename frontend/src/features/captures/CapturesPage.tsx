@@ -87,52 +87,60 @@ export default function CapturesPage(): ReactNode {
   };
 
   return (
-    <section aria-labelledby="captures-heading">
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 id="captures-heading" className="text-xl font-semibold">
-          Capture Vault
-        </h1>
+    <section aria-labelledby="captures-heading" className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1
+            id="captures-heading"
+            className="font-display text-3xl font-semibold tracking-tight text-[#1d1d1f]"
+          >
+            Capture Vault
+          </h1>
+          <p className="mt-1 text-sm text-[#707070]">
+            Immutable enterprise PCAP and PCAPNG ingest with streaming cryptographic digests.
+          </p>
+        </div>
         <RequireAction action="captures:upload">
           <button
             type="button"
             onClick={() => setUploadOpen(true)}
-            className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink"
+            className="apple-btn-primary text-sm"
           >
             Upload Capture
           </button>
         </RequireAction>
       </div>
 
-      <fieldset className="mt-4 flex flex-wrap gap-3">
+      <fieldset className="flex flex-wrap items-center gap-3">
         <legend className="sr-only">Filter captures</legend>
-        <label className="text-sm">
-          State{" "}
+        <label className="flex items-center gap-2 text-xs font-medium text-[#707070]">
+          State
           <select
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value);
               setPage(0);
             }}
-            className="rounded border border-line px-2 py-1"
+            className="rounded-full border border-[#d6d6d6] bg-white px-3 py-1 text-xs text-[#1d1d1f] focus:outline-none focus:border-[#0071e3]"
           >
-            <option value="">All</option>
+            <option value="">All States</option>
             <option value="available">available</option>
             <option value="queued">queued</option>
             <option value="processing">processing</option>
             <option value="failed">failed</option>
           </select>
         </label>
-        <label className="text-sm">
-          Format{" "}
+        <label className="flex items-center gap-2 text-xs font-medium text-[#707070]">
+          Format
           <select
             value={formatFilter}
             onChange={(e) => {
               setFormatFilter(e.target.value);
               setPage(0);
             }}
-            className="rounded border border-line px-2 py-1"
+            className="rounded-full border border-[#d6d6d6] bg-white px-3 py-1 text-xs text-[#1d1d1f] focus:outline-none focus:border-[#0071e3]"
           >
-            <option value="">All</option>
+            <option value="">All Formats</option>
             <option value="pcap">pcap</option>
             <option value="pcapng">pcapng</option>
           </select>
@@ -141,14 +149,14 @@ export default function CapturesPage(): ReactNode {
 
       {listQuery.isPending && <Skeleton label="Loading captures" rows={4} />}
       {listQuery.isError && (
-        <p role="alert" className="mt-4 text-sm text-sev-critical">
+        <p role="alert" className="text-sm font-medium text-[#d70015]">
           Could not load captures.{" "}
           {listQuery.error instanceof ApiError ? listQuery.error.userMessage() : ""}
         </p>
       )}
 
       {listQuery.isSuccess && items.length === 0 && (
-        <div className="mt-6">
+        <div className="mt-4">
           <EmptyState title="No captures match">
             <p>Upload an authorized PCAP/PCAPNG capture, or clear the filters above.</p>
           </EmptyState>
@@ -156,119 +164,139 @@ export default function CapturesPage(): ReactNode {
       )}
 
       {items.length > 0 && (
-        <table className="mt-4 w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-line text-left">
-              <th scope="col" className="py-2 pr-3">
-                Name
-              </th>
-              <th scope="col" className="py-2 pr-3">
-                Format
-              </th>
-              <th scope="col" className="py-2 pr-3">
-                Size
-              </th>
-              <th scope="col" className="py-2 pr-3">
-                SHA-256
-              </th>
-              <th scope="col" className="py-2 pr-3">
-                Uploaded
-              </th>
-              <th scope="col" className="py-2 pr-3">
-                Retention
-              </th>
-              <th scope="col" className="py-2 pr-3">
-                State
-              </th>
-              <th scope="col" className="py-2 pr-3">
-                Analyses
-              </th>
-              <th scope="col" className="py-2">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((capture, index) => (
-              <tr key={capture.id} className="border-b border-line align-top">
-                <td className="py-2 pr-3">
-                  <Link to={`/captures/${capture.id}`} className="underline">
-                    {capture.display_name}
-                  </Link>
-                </td>
-                <td className="py-2 pr-3">{capture.format}</td>
-                <td className="tnum py-2 pr-3">
-                  {formatBytes(capture.size_bytes)}{" "}
-                  <span className="text-ink-muted">({capture.size_bytes.toLocaleString()} B)</span>
-                </td>
-                <td className="mono py-2 pr-3">
-                  {capture.sha256.slice(0, 12)}…{" "}
-                  <button
-                    type="button"
-                    aria-label={`Copy full SHA-256 for ${capture.display_name}`}
-                    onClick={() => void copyHash(capture.sha256)}
-                    className="rounded border border-line px-1 text-xs"
-                  >
-                    Copy
-                  </button>
-                </td>
-                <td className="py-2 pr-3">{formatTimestamp(capture.uploaded_at)}</td>
-                <td className="py-2 pr-3">
-                  <UnknownValue reason="Retention expiry is enforced server-side and is not exposed by the API." />
-                </td>
-                <td className="py-2 pr-3">{capture.state}</td>
-                <td className="tnum py-2 pr-3">{countQueries[index]?.data?.total ?? "…"}</td>
-                <td className="py-2">
-                  <span className="flex flex-wrap gap-2">
+        <div className="apple-card overflow-x-auto p-6">
+          <table className="w-full border-collapse text-left text-xs">
+            <thead>
+              <tr className="border-b border-[#e6e6e8] text-[11px] font-semibold uppercase tracking-wider text-[#707070]">
+                <th scope="col" className="pb-3 pr-4">
+                  Name
+                </th>
+                <th scope="col" className="pb-3 pr-4">
+                  Format
+                </th>
+                <th scope="col" className="pb-3 pr-4">
+                  Size
+                </th>
+                <th scope="col" className="pb-3 pr-4">
+                  SHA-256
+                </th>
+                <th scope="col" className="pb-3 pr-4">
+                  Uploaded
+                </th>
+                <th scope="col" className="pb-3 pr-4">
+                  Retention
+                </th>
+                <th scope="col" className="pb-3 pr-4">
+                  State
+                </th>
+                <th scope="col" className="pb-3 pr-4">
+                  Analyses
+                </th>
+                <th scope="col" className="pb-3">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#f5f5f7]">
+              {items.map((capture, index) => (
+                <tr key={capture.id} className="align-middle transition hover:bg-[#fafafc]">
+                  <td className="py-3.5 pr-4">
+                    <Link
+                      to={`/captures/${capture.id}`}
+                      className="font-semibold text-[#0066cc] hover:underline"
+                    >
+                      {capture.display_name}
+                    </Link>
+                  </td>
+                  <td className="py-3.5 pr-4 text-[#1d1d1f] uppercase tracking-wider">
+                    {capture.format}
+                  </td>
+                  <td className="tnum py-3.5 pr-4 text-[#1d1d1f]">
+                    {formatBytes(capture.size_bytes)}{" "}
+                    <span className="text-[#707070]">
+                      ({capture.size_bytes.toLocaleString()} B)
+                    </span>
+                  </td>
+                  <td className="mono py-3.5 pr-4 text-xs text-[#1d1d1f]">
+                    {capture.sha256.slice(0, 12)}…{" "}
                     <button
                       type="button"
-                      onClick={() => downloadMutation.mutate(capture.id)}
-                      className="rounded border border-line px-2 py-1 text-xs"
+                      aria-label={`Copy full SHA-256 for ${capture.display_name}`}
+                      onClick={() => void copyHash(capture.sha256)}
+                      className="ml-1 rounded-full border border-[#d6d6d6] px-2 py-0.5 text-[10px] text-[#707070] hover:text-[#1d1d1f] hover:bg-[#f5f5f7]"
                     >
-                      Download
+                      Copy
                     </button>
-                    <RequireAction action="captures:delete">
+                  </td>
+                  <td className="py-3.5 pr-4 text-[#707070]">
+                    {formatTimestamp(capture.uploaded_at)}
+                  </td>
+                  <td className="py-3.5 pr-4">
+                    <UnknownValue reason="Retention expiry is enforced server-side and is not exposed by the API." />
+                  </td>
+                  <td className="py-3.5 pr-4">
+                    <span className="inline-flex rounded-full border border-[#e6e6e8] bg-[#ffffff] px-2.5 py-0.5 text-xs font-medium text-[#1d1d1f]">
+                      {capture.state}
+                    </span>
+                  </td>
+                  <td className="tnum py-3.5 pr-4 font-semibold text-[#1d1d1f]">
+                    {countQueries[index]?.data?.total ?? "…"}
+                  </td>
+                  <td className="py-3.5">
+                    <span className="flex flex-wrap gap-2">
                       <button
                         type="button"
-                        onClick={() => {
-                          if (
-                            window.confirm(
-                              `Delete capture "${capture.display_name}"? This permanently removes the stored capture and its analysis history. Retention/audit records may keep the deletion event.`,
-                            )
-                          ) {
-                            deleteMutation.mutate(capture.id);
-                          }
-                        }}
-                        className="rounded border border-line px-2 py-1 text-xs"
+                        onClick={() => downloadMutation.mutate(capture.id)}
+                        className="apple-btn-secondary px-3 py-1 text-xs"
                       >
-                        Delete
+                        Download
                       </button>
-                    </RequireAction>
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                      <RequireAction action="captures:delete">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                `Delete capture "${capture.display_name}"? This permanently removes the stored capture and its analysis history. Retention/audit records may keep the deletion event.`,
+                              )
+                            ) {
+                              deleteMutation.mutate(capture.id);
+                            }
+                          }}
+                          className="apple-btn-secondary px-3 py-1 text-xs text-[#d70015] hover:border-[#d70015]/40"
+                        >
+                          Delete
+                        </button>
+                      </RequireAction>
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      <nav aria-label="Capture pages" className="mt-4 flex items-center gap-3 text-sm">
+      <nav
+        aria-label="Capture pages"
+        className="flex items-center justify-between text-xs font-medium text-[#707070]"
+      >
         <button
           type="button"
           disabled={page === 0}
           onClick={() => setPage((p) => Math.max(0, p - 1))}
-          className="rounded border border-line px-2 py-1 disabled:opacity-50"
+          className="apple-btn-secondary px-4 py-1.5 text-xs disabled:opacity-40"
         >
           Previous
         </button>
-        <span className="tnum">
-          Page {page + 1} · {total} total
+        <span className="tnum text-xs">
+          Page {page + 1} · {total} total captures
         </span>
         <button
           type="button"
           disabled={offset + PAGE_SIZE >= total}
           onClick={() => setPage((p) => p + 1)}
-          className="rounded border border-line px-2 py-1 disabled:opacity-50"
+          className="apple-btn-secondary px-4 py-1.5 text-xs disabled:opacity-40"
         >
           Next
         </button>

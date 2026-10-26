@@ -22,14 +22,14 @@ import { buildTimeline } from "./timelineUtils";
 import type { EventKind, TimelineEvent } from "./timelineUtils";
 
 const KIND_COLOR: Record<EventKind, string> = {
-  ike_sa_init: "#af50ff",
-  ike_auth: "#60a5fa",
-  esp_data: "#4ade80",
-  create_child_sa: "#2dd4bf",
-  nat_t: "#fbbf24",
-  informational: "#828384",
-  rekey: "#f97316",
-  anomaly: "#f87171",
+  ike_sa_init: "#0071e3",
+  ike_auth: "#0066cc",
+  esp_data: "#34c759",
+  create_child_sa: "#30b0c7",
+  nat_t: "#ff9500",
+  informational: "#86868b",
+  rekey: "#b64400",
+  anomaly: "#d70015",
 };
 
 const KIND_ICON: Record<EventKind, string> = {
@@ -123,24 +123,24 @@ function TimelineRow({
 
       {/* Label pill */}
       <rect
-        x={midX - 72}
+        x={midX - 74}
         y={yOffset - 13}
-        width={144}
+        width={148}
         height={26}
-        rx={5}
-        fill={selected ? color : "#1a1a1f"}
-        stroke={color}
-        strokeWidth={selected ? 1.5 : 0.8}
+        rx={13}
+        fill={selected ? color : "#ffffff"}
+        stroke={selected ? color : "#d6d6d6"}
+        strokeWidth={selected ? 1.5 : 1}
         style={arrowStyle}
       />
       <text
         x={midX}
         y={yOffset + 4}
         textAnchor="middle"
-        fill={selected ? "#090909" : color}
+        fill={selected ? "#ffffff" : "#1d1d1f"}
         fontSize="10"
-        fontFamily="ui-monospace, monospace"
-        fontWeight={selected ? "700" : "500"}
+        fontFamily="var(--font-sf-pro-text), ui-sans-serif, system-ui, sans-serif"
+        fontWeight={selected ? "600" : "500"}
         style={arrowStyle}
       >
         {icon} {event.label}
@@ -148,7 +148,7 @@ function TimelineRow({
 
       {/* Warning dot */}
       {event.warning !== undefined && (
-        <circle cx={midX + 74} cy={yOffset - 6} r={4} fill="#f87171" style={arrowStyle} />
+        <circle cx={midX + 76} cy={yOffset - 6} r={4} fill="#d70015" style={arrowStyle} />
       )}
     </g>
   );
@@ -165,7 +165,7 @@ export default function ThreatTimeline({ detail }: { detail: AnalysisDetail }): 
   const svgHeight = TOP_PAD + events.length * ROW_HEIGHT + 40;
 
   return (
-    <div role="region" aria-label="IKEv2 packet flow threat timeline">
+    <div role="region" aria-label="IKEv2 packet flow threat timeline" className="apple-card p-6">
       {/* Keyframe injection */}
       <style>{`
         @keyframes tlFadeIn {
@@ -174,25 +174,35 @@ export default function ThreatTimeline({ detail }: { detail: AnalysisDetail }): 
         }
       `}</style>
 
-      <div className="mb-2 flex flex-wrap items-center gap-3">
-        <h3 className="font-medium">IKEv2 Exchange Timeline</h3>
-        <span className="text-xs text-ink-muted">
-          Reconstructed from packet-observed evidence · Dashed = inferred
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="font-display text-base font-semibold text-[#1d1d1f]">
+            IKEv2 Exchange Timeline
+          </h3>
+          <p className="mt-0.5 text-xs text-[#707070]">
+            Reconstructed from packet-observed evidence · Dashed = inferred state
+          </p>
+        </div>
+        <span className="rounded-full border border-[#e6e6e8] bg-[#fafafc] px-3 py-1 text-xs text-[#707070]">
+          {events.length} chronological events
         </span>
       </div>
 
       {/* Legend row */}
-      <div className="mb-3 flex flex-wrap gap-3" aria-label="Timeline legend">
+      <div className="mb-4 flex flex-wrap gap-2" aria-label="Timeline legend">
         {(Object.entries(KIND_COLOR) as [EventKind, string][])
           .filter(([k]) => events.some((e) => e.kind === k))
           .map(([kind, color]) => (
-            <span key={kind} className="flex items-center gap-1 text-xs">
+            <span
+              key={kind}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#e6e6e8] bg-[#fafafc] px-2.5 py-0.5 text-xs text-[#1d1d1f]"
+            >
               <span
                 aria-hidden="true"
-                className="inline-block h-1.5 w-4 rounded-full"
+                className="inline-block h-2 w-2 rounded-full"
                 style={{ background: color }}
               />
-              <span style={{ color }} className="font-mono">
+              <span className="font-mono text-[11px]">
                 {KIND_ICON[kind]} {kind.replace(/_/g, " ")}
               </span>
             </span>
@@ -200,7 +210,7 @@ export default function ThreatTimeline({ detail }: { detail: AnalysisDetail }): 
       </div>
 
       {/* Main SVG diagram */}
-      <div className="overflow-x-auto rounded border border-line bg-surface-sunken">
+      <div className="overflow-x-auto rounded-[20px] border border-[#e6e6e8] bg-[#fafafc]">
         <svg
           width="800"
           height={svgHeight}
@@ -209,36 +219,31 @@ export default function ThreatTimeline({ detail }: { detail: AnalysisDetail }): 
           className="min-w-[800px]"
         >
           {/* Swimlane headers */}
-          <rect x={0} y={0} width={800} height={TOP_PAD} fill="#121215" />
+          <rect x={0} y={0} width={800} height={TOP_PAD} fill="#f5f5f7" />
           {/* Initiator */}
           <text
             x={80}
             y={32}
             textAnchor="middle"
-            fill="#828384"
+            fill="#707070"
             fontSize="11"
-            fontFamily="ui-monospace, monospace"
+            fontFamily="var(--font-sf-pro-text), ui-sans-serif, system-ui, sans-serif"
             fontWeight="600"
+            letterSpacing="0.05em"
           >
             INITIATOR
           </text>
-          <line
-            x1={80}
-            y1={TOP_PAD}
-            x2={80}
-            y2={svgHeight}
-            stroke="rgba(247,249,250,0.08)"
-            strokeWidth={1}
-          />
+          <line x1={80} y1={TOP_PAD} x2={80} y2={svgHeight} stroke="#e6e6e8" strokeWidth={1} />
           {/* Network */}
           <text
             x={400}
             y={32}
             textAnchor="middle"
-            fill="#828384"
+            fill="#707070"
             fontSize="11"
-            fontFamily="ui-monospace, monospace"
+            fontFamily="var(--font-sf-pro-text), ui-sans-serif, system-ui, sans-serif"
             fontWeight="600"
+            letterSpacing="0.05em"
           >
             NETWORK / ESP TUNNEL
           </text>
@@ -247,21 +252,15 @@ export default function ThreatTimeline({ detail }: { detail: AnalysisDetail }): 
             x={720}
             y={32}
             textAnchor="middle"
-            fill="#828384"
+            fill="#707070"
             fontSize="11"
-            fontFamily="ui-monospace, monospace"
+            fontFamily="var(--font-sf-pro-text), ui-sans-serif, system-ui, sans-serif"
             fontWeight="600"
+            letterSpacing="0.05em"
           >
             RESPONDER
           </text>
-          <line
-            x1={720}
-            y1={TOP_PAD}
-            x2={720}
-            y2={svgHeight}
-            stroke="rgba(247,249,250,0.08)"
-            strokeWidth={1}
-          />
+          <line x1={720} y1={TOP_PAD} x2={720} y2={svgHeight} stroke="#e6e6e8" strokeWidth={1} />
 
           {/* Row separator lines */}
           {events.map((_, i) => (
@@ -271,7 +270,7 @@ export default function ThreatTimeline({ detail }: { detail: AnalysisDetail }): 
               y1={TOP_PAD + (i + 1) * ROW_HEIGHT}
               x2={800}
               y2={TOP_PAD + (i + 1) * ROW_HEIGHT}
-              stroke="rgba(247,249,250,0.04)"
+              stroke="#f0f0f2"
               strokeWidth={1}
             />
           ))}
@@ -283,7 +282,14 @@ export default function ThreatTimeline({ detail }: { detail: AnalysisDetail }): 
               transform={`translate(0, ${TOP_PAD + i * ROW_HEIGHT + ROW_HEIGHT / 2})`}
             >
               {/* Row index label */}
-              <text x={16} y={4} fill="#474747" fontSize="9" fontFamily="ui-monospace, monospace">
+              <text
+                x={16}
+                y={4}
+                fill="#86868b"
+                fontSize="9"
+                fontFamily="var(--font-sf-pro-text), ui-sans-serif, system-ui, sans-serif"
+                fontWeight="500"
+              >
                 {String(i + 1).padStart(2, "0")}
               </text>
 
@@ -301,7 +307,7 @@ export default function ThreatTimeline({ detail }: { detail: AnalysisDetail }): 
       {/* Detail panel — appears on row click */}
       {selectedEvent !== null && (
         <div
-          className="mt-3 rounded border border-line bg-surface-raised p-3"
+          className="mt-4 rounded-[20px] border border-[#e6e6e8] bg-[#ffffff] p-4"
           role="region"
           aria-label={`Details: ${selectedEvent.label}`}
         >
@@ -314,22 +320,25 @@ export default function ThreatTimeline({ detail }: { detail: AnalysisDetail }): 
               {KIND_ICON[selectedEvent.kind]}
             </span>
             <div className="flex-1">
-              <p className="font-medium" style={{ color: KIND_COLOR[selectedEvent.kind] }}>
+              <p
+                className="font-semibold text-[#1d1d1f]"
+                style={{ color: KIND_COLOR[selectedEvent.kind] }}
+              >
                 {selectedEvent.label}
               </p>
               {selectedEvent.sublabel !== undefined && (
-                <p className="mt-0.5 text-sm text-ink-muted">{selectedEvent.sublabel}</p>
+                <p className="mt-0.5 text-xs text-[#707070]">{selectedEvent.sublabel}</p>
               )}
-              <div className="mt-1 flex flex-wrap gap-2 text-xs">
-                <span className="rounded border border-line px-1.5 py-0.5">
+              <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                <span className="rounded-full border border-[#e6e6e8] bg-[#fafafc] px-2.5 py-0.5 text-[#1d1d1f]">
                   Direction: {selectedEvent.direction.replace(/_/g, " ")}
                 </span>
-                <span className="rounded border border-line px-1.5 py-0.5">
+                <span className="rounded-full border border-[#e6e6e8] bg-[#fafafc] px-2.5 py-0.5 text-[#1d1d1f]">
                   Source: {selectedEvent.inferred ? "inferred from evidence" : "packet-observed"}
                 </span>
               </div>
               {selectedEvent.warning !== undefined && (
-                <p className="mt-2 text-sm text-sev-high">⚠ {selectedEvent.warning}</p>
+                <p className="mt-2 text-xs font-medium text-[#d70015]">⚠ {selectedEvent.warning}</p>
               )}
             </div>
           </div>
@@ -337,7 +346,7 @@ export default function ThreatTimeline({ detail }: { detail: AnalysisDetail }): 
       )}
 
       {events.length === 0 && (
-        <p className="mt-3 text-sm text-ink-muted">
+        <p className="mt-3 text-sm text-[#707070]">
           No timeline events could be reconstructed from the available evidence.
         </p>
       )}
