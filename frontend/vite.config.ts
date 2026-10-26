@@ -3,6 +3,8 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
+const backendOrigin = process.env.VITE_BACKEND_ORIGIN || "https://ipsec-app.onrender.com";
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
@@ -11,20 +13,20 @@ export default defineConfig({
   preview: {
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:8000",
+        target: backendOrigin,
         changeOrigin: true,
-        secure: false,
+        secure: backendOrigin.startsWith("https"),
       },
     },
   },
   server: {
     proxy: {
-      // Same-origin topology: browser only calls /api/v1, Vite proxies to
-      // the local FastAPI backend. No backend hostname in feature code.
+      // Same-origin topology: browser calls /api/v1, Vite proxies to
+      // the live Render backend or local FastAPI.
       "/api": {
-        target: "http://127.0.0.1:8000",
+        target: backendOrigin,
         changeOrigin: true,
-        secure: false,
+        secure: backendOrigin.startsWith("https"),
       },
     },
   },
