@@ -15,7 +15,7 @@ test.describe("analyst journeys (mock API)", () => {
     page,
   }) => {
     await login(page);
-    await page.getByRole("link", { name: "Captures" }).click();
+    await page.getByRole("link", { name: "Captures", exact: true }).click();
     await page.getByRole("button", { name: "Upload Capture" }).click();
     await page.getByLabel("Choose a capture file").setInputFiles({
       name: "journey.pcap",
